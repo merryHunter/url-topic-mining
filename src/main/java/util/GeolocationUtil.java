@@ -15,14 +15,14 @@ public class GeolocationUtil {
     /** Number of characters for geohashing .*/
     public static final int GEOHASH_PRECISION = 5;
 
-
+    /**
+     * Compute new location given bearing nad distance from a location.
+     * @param bearing: Bearing in degrees.
+     * @param d: distance to the new location.
+     * @return <code>{@link Location}</code>  object cnotaining lat & lon.
+     */
     public static Location getNewLocation(double lat, double lon, double bearing, int d){
-        /**
-         * Compute new location given bearing nad distance from a location.
-         * @param bearing: Bearing in degrees.
-         * @param d: distance to the new location.
-         * @return <code>{@link Location}</code>  object cnotaining lat & lon.
-         */
+
         bearing = Math.toRadians(bearing);
         double lat2 = Math.asin( Math.sin(lat)*Math.cos(d/R) +
                 Math.cos(lat)*Math.sin(d/R)*Math.cos(bearing));

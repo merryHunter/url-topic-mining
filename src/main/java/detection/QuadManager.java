@@ -3,24 +3,35 @@
  */
 package detection;
 
+import com.mongodb.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 import org.apache.spark.sql.Dataset;
+import util.MongoUtil;
+
 import javax.ws.rs.core.MultivaluedHashMap;
 import java.util.List;
 
 public class QuadManager implements IQuadManager{
 
+    /** */
+    private MongoDatabase mongoDatabase;
+
     /** All URLs. */
-    private Dataset<String> URLs;
+    private MongoCollection URLs;
 
-    /** Mapped geohash to all quads ids. (for the world?)*/
+    /** All quads partitioned over the world. */
+    private MongoCollection quads;
+
+    /** Mapped geohash to all quads ids. */
     // !???? must be not quads, but indexes to them!!!
-    protected MultivaluedHashMap<String, Integer> quadHashMap;
+    private MultivaluedHashMap<String, Integer> quadHashMap;
 
-    /** All quads partitioned over the ...???. */
-    // TODO: transform to another data structure? (db?)
-    protected Quad[] quads;
 
     public QuadManager(){
+        MongoUtil.getOrCreateMongoClient();
+        mongoDatabase = MongoUtil.getDatabase("urlsdb");
+        URLs = mongoDatabase.getCollection("outputone");
     }
 
     public void partitionMapIntoQuads(){

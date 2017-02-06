@@ -23,8 +23,8 @@ public class DistributedQuadManager  implements IQuadManager{
     }
 
     @Override
-    public int selectQuadByUrlLocation(List<Quad> q, Location l) {
-        return 0;
+    public Quad selectQuadByUrlLocation(List<Quad> q, Location l) {
+        return null;
     }
 
     @Override
