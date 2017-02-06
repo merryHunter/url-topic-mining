@@ -7,68 +7,45 @@ import org.apache.spark.sql.Dataset;
 import javax.ws.rs.core.MultivaluedHashMap;
 import java.util.List;
 
-public class QuadManager {
+public class QuadManager implements IQuadManager{
 
     /** All URLs. */
     private Dataset<String> URLs;
 
     /** Mapped geohash to all quads ids. (for the world?)*/
     // !???? must be not quads, but indexes to them!!!
-    private MultivaluedHashMap<String, Integer> quadHashMap;
+    protected MultivaluedHashMap<String, Integer> quadHashMap;
 
     /** All quads partitioned over the ...???. */
     // TODO: transform to another data structure? (db?)
-    private Quad[] quads;
+    protected Quad[] quads;
 
-    public QuadManager(String urlFile){
-        createQuadHashMap(quads);
-        partitionUrls(urlFile);
+    public QuadManager(){
     }
 
-    private void partitionMapIntoQuads(){
+    public void partitionMapIntoQuads(){
         /** */
     }
 
+    @Override
+    public void partitionMapIntoQuads(Location topleft, Location bottomright, int S) {
 
+    }
 
-    public MultivaluedHashMap<String, Integer> createQuadHashMap(Quad[] quads){
+    public MultivaluedHashMap<String, Integer> createQuadHashMap(){
         /** Compute geohashes for quads and create hashmap. */
 
         return null;
     }
-
-    private void partitionUrls(String urlFile){
-        /** Read urls and partition them into squares.
-         * @param urlFile: dataset file contatining paris of URL and location.
-         * */
-        /*
-            For each u in urlFile;
-                //get hash
-                String urlhash = Geohash.geoHashStringWithCharacterPrecision(u.lat, u.lon, n);
-
-                //get quads with similar hash
-                List<Quad> qList = quadsAll.get(urlhash);
-                int q_index = 0; // index of quad containing the url
-                if (q.size() > 1){
-                    q_index = selectQuadByUrlLocation(qList, u.lat, u.lon);
-                }
-
-                //get quad containing url
-                Quad q = qList.get(q_index);
-                q.addUrl(u.url);
-
-                //!! this operation requires another representation for all quads!
-                quads.update(q)
-                //!!
-
-         */
-
-    }
-
-    private int selectQuadByUrlLocation(List<Quad> q, Location l){
+    public Quad selectQuadByUrlLocation(List<Quad> q, Location urllocation){
         /** Select which quad among given contains @param l */
 
-        return -1;
+        return null;
+    }
+
+    @Override
+    public void partitionUrls() {
+
     }
 
     public MultivaluedHashMap<String, Integer> getQuadHashMap(){

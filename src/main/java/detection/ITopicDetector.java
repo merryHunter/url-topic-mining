@@ -7,10 +7,10 @@ package detection;
 
 import java.util.List;
 
-public interface TopicDetector {
-
+public interface ITopicDetector {
 
     List<String> getTopicsByQuad(Quad q);
+
     List<String> getTopics(Location topleft, Location bottomright, int S);
 
 }

@@ -17,6 +17,8 @@ import java.util.List;
 //
 public class Quad {
 
+    private int _id;
+
     private Location topleft, bottomright;
 
     /**
@@ -41,7 +43,7 @@ public class Quad {
                 .geoHashStringWithCharacterPrecision(
                         center.getLatitude(),
                         center.getLongitude(),
-                        GeolocationUtil.NUMBER_OF_CHARACTERS);
+                        GeolocationUtil.GEOHASH_PRECISION);
 
     }
 
