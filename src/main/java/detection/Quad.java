@@ -16,10 +16,20 @@ import java.util.List;
 //TODO: provide interface for representing connections between quads.
 //
 public class Quad {
+    /** Кут діагоналі квадрата в напрямку якого рухаємо координату щоб знайти центр квадрата та правий нижній кут */
+    public static final int QUAD_DIAGONAL_BEARING_45 = 45;
 
-    private int _id;
+    private long _id;
 
-    private Location topleft, bottomright;
+    public long get_id() {
+        return _id;
+    }
+
+    public void set_id(long _id) {
+        this._id = _id;
+    }
+
+    private Location topleft, bottomright, topright, bottomleft;
 
     /**
      * Hashtable of the inferred topics in the quad.
@@ -32,6 +42,8 @@ public class Quad {
     /** URLs inside this quad. */
     //TODO: transform this field to index pointer of urls?
     List<String> urls;
+
+
 
 
     public Quad(Location topleft, Location bottomright){
@@ -47,9 +59,49 @@ public class Quad {
 
     }
 
-    //TODO: implement method
-    public Location getCenter(){
+    public Location getTopleft() {
+        return topleft;
+    }
+
+    public Location getBottomright() {
+        return bottomright;
+    }
+
+    public Location getBottomLeft() {
+        //TODO for convenient generation?
         return null;
+    }
+
+    /**
+     * Quad constructor that creates quad based on its topleft corner and side length
+     * @param topleft
+     * @param d : quad side length
+     */
+    public Quad(Location topleft, int d){
+        this.topleft = topleft;
+        this.bottomright = GeolocationUtil.getNewLocation(
+                topleft.getLatitude(),
+                topleft.getLongitude(),
+                QUAD_DIAGONAL_BEARING_45,
+                d
+        );
+        Location center = getCenter();
+        //---??? ---
+        geoHash = GeoHash
+                .geoHashStringWithCharacterPrecision(
+                        center.getLatitude(),
+                        center.getLongitude(),
+                        GeolocationUtil.GEOHASH_PRECISION);
+    }
+
+
+    public Location getCenter(){
+       return GeolocationUtil.getNewLocation(
+               topleft.getLatitude(),
+               topleft.getLongitude(),
+               QUAD_DIAGONAL_BEARING_45,
+               Math.sqrt(4+4)/2.0
+       ); //корінь суми квадратів катетів поділений на 2 - центр гіпотенузи
     }
 
     public void setStats(Hashtable<String, Integer> stats) {

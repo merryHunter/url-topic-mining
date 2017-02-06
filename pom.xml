@@ -69,6 +69,11 @@
             <artifactId>log4j</artifactId>
             <version>RELEASE</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-sql_2.10</artifactId>
+            <version>2.0.1</version>
+        </dependency>
 
 
     </dependencies>

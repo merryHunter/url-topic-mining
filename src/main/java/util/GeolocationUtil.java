@@ -21,7 +21,10 @@ public class GeolocationUtil {
      * @param d: distance to the new location.
      * @return <code>{@link Location}</code>  object cnotaining lat & lon.
      */
-    public static Location getNewLocation(double lat, double lon, double bearing, int d){
+
+
+    public static Location getNewLocation(double lat, double lon, double bearing, double d){
+
 
         bearing = Math.toRadians(bearing);
         double lat2 = Math.asin( Math.sin(lat)*Math.cos(d/R) +

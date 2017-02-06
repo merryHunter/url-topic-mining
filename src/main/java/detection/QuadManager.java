@@ -3,12 +3,11 @@
  */
 package detection;
 
+
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import org.apache.spark.sql.Dataset;
 import util.MongoUtil;
-
 import javax.ws.rs.core.MultivaluedHashMap;
 import java.util.List;
 
@@ -22,6 +21,7 @@ public class QuadManager implements IQuadManager{
 
     /** All quads partitioned over the world. */
     private MongoCollection quads;
+//    private Dataset<String> URLs;
 
     /** Mapped geohash to all quads ids. */
     // !???? must be not quads, but indexes to them!!!
@@ -38,8 +38,9 @@ public class QuadManager implements IQuadManager{
         /** */
     }
 
+
     @Override
-    public void partitionMapIntoQuads(Location topleft, Location bottomright, int S) {
+    public void partitionMapIntoQuads(Location topleft, Location bottomright, long S) {
 
     }
 
