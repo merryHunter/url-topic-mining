@@ -40,7 +40,7 @@ public class QuadManager implements IQuadManager{
 
 
     @Override
-    public void partitionMapIntoQuads(Location topleft, Location bottomright, long S) {
+    public void partitionMapIntoQuads(Location topleft, Location bottomright, int S) {
 
     }
 

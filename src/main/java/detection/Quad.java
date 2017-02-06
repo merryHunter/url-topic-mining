@@ -4,9 +4,11 @@
 package detection;
 
 import ch.hsr.geohash.GeoHash;
+import org.mongodb.morphia.annotations.*;
 import util.GeolocationUtil;
 
 import java.util.Hashtable;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -14,11 +16,16 @@ import java.util.List;
  * URLs, computed topics, squares inside this square. */
 //
 //TODO: provide interface for representing connections between quads.
-//
+//TODO: think about secondary indexes(commented out now)
+@Entity("quad")
+//@Indexes(
+//        @Index(value = "topleft", fields = @Field("geohash"))
+//)
 public class Quad {
     /** Кут діагоналі квадрата в напрямку якого рухаємо координату щоб знайти центр квадрата та правий нижній кут */
     public static final int QUAD_DIAGONAL_BEARING_45 = 45;
 
+    @Id
     private long _id;
 
     public long get_id() {
@@ -29,7 +36,9 @@ public class Quad {
         this._id = _id;
     }
 
-    private Location topleft, bottomright, topright, bottomleft;
+    private Location topleft;
+    private Location bottomright;
+//    topright, bottomleft;
 
     /**
      * Hashtable of the inferred topics in the quad.
@@ -37,26 +46,26 @@ public class Quad {
     private Hashtable<String, Integer> stats;
 
     /** Hash for the center of the quad. */
-    private String geoHash; // ??? should we move it to Util and compute as we need it?
+    private String geoHash;
 
     /** URLs inside this quad. */
     //TODO: transform this field to index pointer of urls?
-    List<String> urls;
+    @Property("urls")
+    List<Long> urls = new LinkedList<>();
 
 
-
+    public Quad(){}
 
     public Quad(Location topleft, Location bottomright){
         this.topleft = topleft;
         this.bottomright = bottomright;
+
         Location center = getCenter();
-        //---??? ---
         geoHash = GeoHash
                 .geoHashStringWithCharacterPrecision(
                         center.getLatitude(),
                         center.getLongitude(),
                         GeolocationUtil.GEOHASH_PRECISION);
-
     }
 
     public Location getTopleft() {
@@ -86,7 +95,6 @@ public class Quad {
                 d
         );
         Location center = getCenter();
-        //---??? ---
         geoHash = GeoHash
                 .geoHashStringWithCharacterPrecision(
                         center.getLatitude(),
@@ -108,11 +116,11 @@ public class Quad {
         this.stats = stats;
     }
 
-    public void setUrls(List<String> urls) {
+    public void setUrls(List<Long> urls) {
         this.urls = urls;
     }
 
-    public void addUrl(String url){
+    public void addUrl(Long url){
         urls.add(url);
     }
 
@@ -120,4 +128,7 @@ public class Quad {
         return geoHash;
     }
 
+    public Hashtable<String, Integer> getStats() {
+        return stats;
+    }
 }

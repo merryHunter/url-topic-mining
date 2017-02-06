@@ -3,11 +3,17 @@
  */
 package detection;
 
+import org.mongodb.morphia.annotations.Entity;
+import org.mongodb.morphia.annotations.Id;
+
 /**
  * Geographical location.
  * */
+@Entity("location")
 public class Location {
     private double latitude, longitude;
+
+    public Location(){}
 
     public Location(double latitude, double longitude){
         this.latitude = latitude;
