@@ -10,7 +10,7 @@ public interface IQuadManager {
 
     /** At the first query to the system, the method assigns an id
      * to each quad and set its location. */
-    void partitionMapIntoQuads(Location topleft, Location bottomright, int S);
+    void partitionMapIntoQuads(Location topleft, Location bottomright, long S);
 
     /** Resulting hashmap contains geohash of quad center and the quad id. */
     MultivaluedHashMap<String, Integer> createQuadHashMap();

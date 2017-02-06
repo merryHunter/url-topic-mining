@@ -3,14 +3,14 @@
  */
 package detection;
 
-import org.apache.spark.sql.Dataset;
+
 import javax.ws.rs.core.MultivaluedHashMap;
 import java.util.List;
 
 public class QuadManager implements IQuadManager{
 
     /** All URLs. */
-    private Dataset<String> URLs;
+//    private Dataset<String> URLs;
 
     /** Mapped geohash to all quads ids. (for the world?)*/
     // !???? must be not quads, but indexes to them!!!
@@ -27,8 +27,9 @@ public class QuadManager implements IQuadManager{
         /** */
     }
 
+
     @Override
-    public void partitionMapIntoQuads(Location topleft, Location bottomright, int S) {
+    public void partitionMapIntoQuads(Location topleft, Location bottomright, long S) {
 
     }
 
