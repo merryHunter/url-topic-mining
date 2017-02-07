@@ -16,7 +16,6 @@ import java.util.List;
  * Represents physical squares of the map grid. Allows access to containing
  * URLs, computed topics, squares inside this square. */
 //
-//TODO: provide interface for representing connections between quads.
 //TODO: think about secondary indexes(commented out now)
 @Entity("quad")
 //@Indexes(
