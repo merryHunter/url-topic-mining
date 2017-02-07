@@ -27,11 +27,14 @@ public class QuadManager implements IQuadManager{
     // !???? must be not quads, but indexes to them!!!
     private MultivaluedHashMap<String, Integer> quadHashMap;
 
+    private static final String DATABASE_NAME = "urlsdb";
+
+    private static final String URL_COLLECTION = "output";
 
     public QuadManager(){
         MongoUtil.getOrCreateMongoClient();
-        mongoDatabase = MongoUtil.getDatabase("urlsdb");
-        URLs = mongoDatabase.getCollection("outputone");
+        mongoDatabase = MongoUtil.getDatabase(DATABASE_NAME);
+        URLs = mongoDatabase.getCollection(URL_COLLECTION);
     }
 
     public void partitionMapIntoQuads(){

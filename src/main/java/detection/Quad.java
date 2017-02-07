@@ -4,6 +4,7 @@
 package detection;
 
 import ch.hsr.geohash.GeoHash;
+import org.apache.log4j.Logger;
 import org.mongodb.morphia.annotations.*;
 import util.GeolocationUtil;
 
@@ -22,6 +23,8 @@ import java.util.List;
 //        @Index(value = "topleft", fields = @Field("geohash"))
 //)
 public class Quad {
+    final static Logger logger = Logger.getLogger(Quad.class);
+
     /** Кут діагоналі квадрата в напрямку якого рухаємо координату щоб знайти центр квадрата та правий нижній кут */
     public static final int QUAD_DIAGONAL_BEARING_45 = 45;
     private static final int QUAD_DIAGONAL_BEARING_90 = 90;

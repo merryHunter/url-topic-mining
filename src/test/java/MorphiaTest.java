@@ -41,7 +41,7 @@ public class MorphiaTest {
         stats.put("moose", 3);
         stats.put("Obama", 1);
         stats.put("Trento", 10);
-        Quad quad = new Quad(new Location(45.111, 50.333), new Location(66.234,34.234));
+        Quad quad = new Quad(new Location(46.049945, 11.121257), 2);
         quad.set_id(9);
         quad.addUrl(1L);
         quad.addUrl(1L);

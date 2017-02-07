@@ -4,6 +4,7 @@
 package util;
 
 import detection.Location;
+import org.apache.log4j.Logger;
 
 public class GeolocationUtil {
     /** Radius of the Earth. */
@@ -24,9 +25,10 @@ public class GeolocationUtil {
 
 
     public static Location getNewLocation(double lat, double lon, double bearing, double d){
-
-
         bearing = Math.toRadians(bearing);
+        lat = Math.toRadians(lat);
+        lon = Math.toRadians(lon);
+
         double lat2 = Math.asin( Math.sin(lat)*Math.cos(d/R) +
                 Math.cos(lat)*Math.sin(d/R)*Math.cos(bearing));
 
