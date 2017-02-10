@@ -7,10 +7,12 @@ package detection;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import org.bson.types.ObjectId;
 import util.MongoUtil;
 import javax.ws.rs.core.MultivaluedHashMap;
 import java.util.List;
 
+//TODO: to be delted after successful implementation of <code>QuadManagerImpl</code>
 public class QuadManager implements IQuadManager{
 
     /** */
@@ -25,7 +27,7 @@ public class QuadManager implements IQuadManager{
 
     /** Mapped geohash to all quads ids. */
     // !???? must be not quads, but indexes to them!!!
-    private MultivaluedHashMap<String, Integer> quadHashMap;
+    private MultivaluedHashMap<String, Long> quadHashMap;
 
     private static final String DATABASE_NAME = "urlsdb";
 
@@ -47,7 +49,7 @@ public class QuadManager implements IQuadManager{
 
     }
 
-    public MultivaluedHashMap<String, Integer> createQuadHashMap(){
+    public MultivaluedHashMap<String, Long> createQuadHashMap(){
         /** Compute geohashes for quads and create hashmap. */
 
         return null;
@@ -63,7 +65,7 @@ public class QuadManager implements IQuadManager{
 
     }
 
-    public MultivaluedHashMap<String, Integer> getQuadHashMap(){
+    public MultivaluedHashMap<String, Long> getQuadHashMap(){
         return quadHashMap;
     }
 
