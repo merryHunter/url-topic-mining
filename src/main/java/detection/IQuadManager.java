@@ -3,6 +3,8 @@
  */
 package detection;
 
+import org.bson.types.ObjectId;
+
 import javax.ws.rs.core.MultivaluedHashMap;
 import java.util.List;
 
@@ -13,7 +15,7 @@ public interface IQuadManager {
     void partitionMapIntoQuads(Location topleft, Location bottomright, int S);
 
     /** Resulting hashmap contains geohash of quad center and the quad id. */
-    MultivaluedHashMap<String, Integer> createQuadHashMap();
+    MultivaluedHashMap<String, Long> createQuadHashMap();
 
     /** Resulting quad is the quad where queried URL belongs to.*/
     Quad selectQuadByUrlLocation(List<Quad> q, Location urllocation);

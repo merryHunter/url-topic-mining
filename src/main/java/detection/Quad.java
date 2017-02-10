@@ -5,7 +5,9 @@ package detection;
 
 import ch.hsr.geohash.GeoHash;
 import org.apache.log4j.Logger;
+import org.bson.types.ObjectId;
 import org.mongodb.morphia.annotations.*;
+import org.mongodb.morphia.utils.IndexType;
 import util.GeolocationUtil;
 
 import java.util.Hashtable;
@@ -16,11 +18,11 @@ import java.util.List;
  * Represents physical squares of the map grid. Allows access to containing
  * URLs, computed topics, squares inside this square. */
 //
-//TODO: think about secondary indexes(commented out now)
 @Entity("quad")
-//@Indexes(
-//        @Index(value = "topleft", fields = @Field("geohash"))
-//)
+@Indexes({
+        @Index(fields = @Field(value = "geohash", type = IndexType.TEXT)),
+        @Index(fields = @Field(value = "qId", type = IndexType.ASC))
+})
 public class Quad {
     final static Logger logger = Logger.getLogger(Quad.class);
 
@@ -30,17 +32,19 @@ public class Quad {
     private static final int QUAD_DIAGONAL_BEARING_0 = 0;
 
     @Id
-    private long _id;
+    private ObjectId id;
 
-    public long get_id() {
-        return _id;
+    private long qId;
+
+    public long getId() {
+        return qId;
     }
 
-    public void set_id(long _id) {
-        this._id = _id;
+    public void setId(long id_) {
+        this.qId = id_;
     }
 
-    private int quadSide;
+    private int qSide;
 
     private Location topleft, bottomright;
 
@@ -54,8 +58,9 @@ public class Quad {
 
     /** URLs inside this quad. */
     //TODO: transform this field to index pointer of urls?
-    @Property("urls")
-    List<Long> urls = new LinkedList<>();
+    //TODO: ensure ObjectId is the best. Perhaps String will fit better.
+    private List<ObjectId> urls = new LinkedList<>();
+
 
 
     public Quad(){}
@@ -85,7 +90,7 @@ public class Quad {
                 topleft.getLatitude(),
                 topleft.getLongitude(),
                 QUAD_DIAGONAL_BEARING_90,
-                quadSide
+                qSide
         );
     }
 
@@ -94,7 +99,7 @@ public class Quad {
                 topleft.getLatitude(),
                 topleft.getLongitude(),
                 QUAD_DIAGONAL_BEARING_0,
-                quadSide
+                qSide
         );
     }
 
@@ -108,16 +113,20 @@ public class Quad {
         this.bottomright = GeolocationUtil.getNewLocation(
                 topleft.getLatitude(),
                 topleft.getLongitude(),
-                QUAD_DIAGONAL_BEARING_45,
+                135,
                 Math.sqrt(quadSide*quadSide + quadSide*quadSide)
         );
-        this.quadSide = quadSide;
+        this.qSide = quadSide;
         Location center = getCenter();
-        geoHash = GeoHash
-                .geoHashStringWithCharacterPrecision(
-                        center.getLatitude(),
-                        center.getLongitude(),
-                        GeolocationUtil.GEOHASH_PRECISION);
+        if (quadSide == 16) { // геохеш тільки для найменших квадратів
+            geoHash = GeoHash
+                    .geoHashStringWithCharacterPrecision(
+                            center.getLatitude(),
+                            center.getLongitude(),
+                            GeolocationUtil.GEOHASH_PRECISION);
+        }else {
+            geoHash = null;
+        }
     }
 
 
@@ -126,7 +135,7 @@ public class Quad {
                topleft.getLatitude(),
                topleft.getLongitude(),
                QUAD_DIAGONAL_BEARING_45,
-               Math.sqrt(quadSide*quadSide+quadSide*quadSide)/2.0
+               Math.sqrt(qSide * qSide + qSide * qSide)/2.0
        ); //корінь суми квадратів катетів поділений на 2 - центр гіпотенузи
     }
 
@@ -134,11 +143,15 @@ public class Quad {
         this.stats = stats;
     }
 
-    public void setUrls(List<Long> urls) {
+    public void setUrls(List<ObjectId> urls) {
         this.urls = urls;
     }
 
-    public void addUrl(Long url){
+    public List<ObjectId> getUrls() {
+        return urls;
+    }
+
+    public void addUrl(ObjectId url){
         urls.add(url);
     }
 
@@ -150,8 +163,8 @@ public class Quad {
         return stats;
     }
 
-    public int getQuadSide() {
-        return quadSide;
+    public int getqSide() {
+        return qSide;
     }
 
     @Override
