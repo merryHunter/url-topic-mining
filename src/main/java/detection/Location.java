@@ -4,7 +4,6 @@
 package detection;
 
 import org.mongodb.morphia.annotations.Entity;
-import org.mongodb.morphia.annotations.Id;
 import org.mongodb.morphia.annotations.Property;
 
 /**
@@ -32,5 +31,11 @@ public class Location {
 
     public double getLongitude() {
         return longitude;
+    }
+
+    @Override
+    public String toString() {
+        return "Lat: " + Double.toString(latitude) +
+                ", Lon: " + Double.toString(longitude);
     }
 }

@@ -6,6 +6,7 @@ package detection.distributed;
 import detection.IQuadManager;
 import detection.Location;
 import detection.Quad;
+import org.bson.types.ObjectId;
 
 import javax.ws.rs.core.MultivaluedHashMap;
 import java.util.List;
@@ -18,7 +19,7 @@ public class DistributedQuadManager  implements IQuadManager{
     }
 
     @Override
-    public MultivaluedHashMap<String, Integer> createQuadHashMap() {
+    public MultivaluedHashMap<String, Long> createQuadHashMap() {
         return null;
     }
 
