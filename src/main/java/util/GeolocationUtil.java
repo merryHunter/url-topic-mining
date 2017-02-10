@@ -14,7 +14,7 @@ public class GeolocationUtil {
     public static final int NUMBER_TOPIC_TO_VIEW = 5;
 
     /** Number of characters for geohashing .*/
-    public static final int GEOHASH_PRECISION = 5;
+    public static final int GEOHASH_PRECISION = 4;
 
     /**
      * Compute new location given bearing nad distance from a location.
@@ -28,7 +28,7 @@ public class GeolocationUtil {
         bearing = Math.toRadians(bearing);
         lat = Math.toRadians(lat);
         lon = Math.toRadians(lon);
-
+        d *= 0.7001; // convert km to pseudo-miles
         double lat2 = Math.asin( Math.sin(lat)*Math.cos(d/R) +
                 Math.cos(lat)*Math.sin(d/R)*Math.cos(bearing));
 
