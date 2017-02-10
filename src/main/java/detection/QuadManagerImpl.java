@@ -123,6 +123,8 @@ public class QuadManagerImpl implements IQuadManager{
 
     @Override
     public Quad selectQuadByUrlLocation(List<Quad> quadList, Location urllocation) {
+        if (quadList.size() == 1)
+            return quadList.get(0);
          for(Quad q : quadList){
              Location topleft = q.getTopleft();
              Location bottomright = q.getBottomright();
@@ -161,6 +163,7 @@ public class QuadManagerImpl implements IQuadManager{
     @Override
     public void partitionUrls(){
         logger.info("partitionUrls started");
+        int count = 0;
         URLs = mongoDatabase.getCollection(URL_COLLECTION);
         for (Object o : URLs.find()) { // .batchSize(128)
             Document d = (Document) o;
@@ -185,6 +188,10 @@ public class QuadManagerImpl implements IQuadManager{
                         Double.toString(lat) + " " +
                         Double.toString(lon));
                 avgQuadListSize++;
+            }
+            count++;
+            if (count % 1000 == 0){
+                logger.info("Processed " + Integer.toString(count) + " urls.");
             }
         }
         logger.info("Number of quads without match geohash: " + Float.toString(avgQuadListSize ));

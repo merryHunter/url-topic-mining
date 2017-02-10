@@ -28,6 +28,8 @@ public class Quad {
     /** Кут діагоналі квадрата в напрямку якого рухаємо координату щоб знайти центр квадрата та правий нижній кут */
     public static final int QUAD_DIAGONAL_BEARING_45 = 45;
     private static final int QUAD_DIAGONAL_BEARING_90 = 90;
+    private static final int QUAD_DIAGONAL_BEARING_135 = 135;
+    private static final int QUAD_DIAGONAL_BEARING_180 = 180;
     private static final int QUAD_DIAGONAL_BEARING_0 = 0;
 
     @Id
@@ -88,7 +90,7 @@ public class Quad {
         return GeolocationUtil.getNewLocation(
                 topleft.getLatitude(),
                 topleft.getLongitude(),
-                QUAD_DIAGONAL_BEARING_90,
+                QUAD_DIAGONAL_BEARING_180,
                 qSide
         );
     }
@@ -97,7 +99,7 @@ public class Quad {
         return GeolocationUtil.getNewLocation(
                 topleft.getLatitude(),
                 topleft.getLongitude(),
-                QUAD_DIAGONAL_BEARING_0,
+                QUAD_DIAGONAL_BEARING_90,
                 qSide
         );
     }
@@ -112,7 +114,7 @@ public class Quad {
         this.bottomright = GeolocationUtil.getNewLocation(
                 topleft.getLatitude(),
                 topleft.getLongitude(),
-                135,
+                QUAD_DIAGONAL_BEARING_135,
                 Math.sqrt(quadSide*quadSide + quadSide*quadSide)
         );
         this.qSide = quadSide;
@@ -133,7 +135,7 @@ public class Quad {
        return GeolocationUtil.getNewLocation(
                topleft.getLatitude(),
                topleft.getLongitude(),
-               QUAD_DIAGONAL_BEARING_45,
+               QUAD_DIAGONAL_BEARING_135,
                Math.sqrt(qSide * qSide + qSide * qSide)/2.0
        ); //корінь суми квадратів катетів поділений на 2 - центр гіпотенузи
     }
@@ -171,6 +173,7 @@ public class Quad {
         return "Topleft: " + topleft.toString() + "\n" +
                 "Bottomright: " + bottomright.toString() + "\n" +
                 "Topright: " + this.calcTopRight().toString() + "\n" +
-                "Bottomleft: " + this.calcBottomLeft().toString();
+                "Bottomleft: " + this.calcBottomLeft().toString() + "\n" +
+                "Center: " + this.getCenter();
     }
 }
