@@ -6,15 +6,12 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.apache.log4j.Logger;
 import org.bson.Document;
-import org.bson.types.ObjectId;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Morphia;
-import org.mongodb.morphia.query.FindOptions;
 import org.mongodb.morphia.query.Query;
 import util.GeolocationUtil;
 import util.MongoUtil;
 
-import javax.ws.rs.core.MultivaluedHashMap;
 import java.util.List;
 
 /**
@@ -32,8 +29,6 @@ public class QuadManagerImpl implements IQuadManager{
 
     private static final int MINIMAL_SIDE = 16;
 
-    private MultivaluedHashMap<String, Long> quadHashMap;
-
     /** */
     private MongoClient mongoClient;
 
@@ -49,7 +44,7 @@ public class QuadManagerImpl implements IQuadManager{
 
     private Datastore datastore;
 
-    int avgQuadListSize = 0;
+    private int countUrlNotMatchingQuads = 0;
 
     public QuadManagerImpl(){
         mongoClient = MongoUtil.getOrCreateMongoClient();
@@ -61,6 +56,7 @@ public class QuadManagerImpl implements IQuadManager{
     }
 
     /**
+     * Create map grid represented by <code>{@link Quad}</code>.
      * @param S: is the side length of the square
      */
     @Override
@@ -79,7 +75,9 @@ public class QuadManagerImpl implements IQuadManager{
         logger.info("Patitioning map into quads finished.");
     }
 
-    private void recursivePartitionMapIntoQuads(Location topleft, int fatherQuadSide, long fatherQuadId) {
+    private void recursivePartitionMapIntoQuads(Location topleft,
+                                                int fatherQuadSide,
+                                                long fatherQuadId) {
         if (fatherQuadSide == MINIMAL_SIDE)
             return;
 
@@ -108,19 +106,15 @@ public class QuadManagerImpl implements IQuadManager{
         recursivePartitionMapIntoQuads(newQuad3.getTopleft(), newQuad3.getqSide(), newQuad3.getId());
     }
 
-    @Override
-    public MultivaluedHashMap<String, Long> createQuadHashMap() {
-        //TODO: make it private?
-        quadHashMap = new MultivaluedHashMap<>();
-        Query<Quad> queryQuad = datastore
-                .createQuery(Quad.class)
-                .filter("qSide ==", MINIMAL_SIDE);
-        for(Quad q : queryQuad.fetch()){    // @param: new FindOptions().batchSize(128) ? - for memory saving
-            quadHashMap.add(q.getGeoHash(), q.getId());
-        }
-        return quadHashMap;
-    }
 
+    /**
+     * A url location can refer to multiple quads with the same geohash.
+     * Determine the quad containing the given url location by
+     * rectangle vertices comparison.
+     * @param quadList : List of quads with the same geohash.
+     * @param urllocation : Location of a url not placed yet in any quad.
+     * @return Quad containing given url.
+     */
     @Override
     public Quad selectQuadByUrlLocation(List<Quad> quadList, Location urllocation) {
         if (quadList.size() == 1)
@@ -140,30 +134,14 @@ public class QuadManagerImpl implements IQuadManager{
          return null;
     }
 
-
-    public void partitionUrlsWithHashMap() {
-        URLs = mongoDatabase.getCollection(URL_COLLECTION);
-        for (Object o : URLs.find()) { // .batchSize(128)
-            Document d = (Document) o;
-            double lat = (double) d.get("lat");
-            double lon = (double) d.get("lon");
-            String urlHash = GeoHash
-                    .geoHashStringWithCharacterPrecision(
-                            lat,
-                            lon,
-                            GeolocationUtil.GEOHASH_PRECISION);
-            List<Long> quadIdList = quadHashMap.get("u20x");
-            Query<Quad> queryQuad = datastore
-                    .createQuery(Quad.class)
-                    .filter("qId ==", urlHash);
-            List<Quad> quadList = queryQuad.asList();
-        }
-    }
-
+    /**
+     * Distributed URLs over created map grid
+     * (see <code>partitionMapIntoQuads</code>).
+     */
     @Override
     public void partitionUrls(){
         logger.info("partitionUrls started");
-        int count = 0;
+        int count = 0;                  // count processed urls
         URLs = mongoDatabase.getCollection(URL_COLLECTION);
         for (Object o : URLs.find()) { // .batchSize(128)
             Document d = (Document) o;
@@ -174,27 +152,29 @@ public class QuadManagerImpl implements IQuadManager{
                             lat,
                             lon,
                             GeolocationUtil.GEOHASH_PRECISION);
+            //retrieve quads containing the same geohash
             Query<Quad> queryQuad = datastore
                     .createQuery(Quad.class)
                     .filter("geoHash ==", urlHash);
             List<Quad> quadList = queryQuad.asList();
             Quad q = selectQuadByUrlLocation(quadList, new Location(lat, lon));
             if(q != null) {
-                q.addUrl((ObjectId) d.get("_id"));
+                q.addUrl((String) d.get("urls"));
                 datastore.save(q);
             } else {
                 logger.info("No quads match geohash: " +
                         urlHash + " " +
                         Double.toString(lat) + " " +
                         Double.toString(lon));
-                avgQuadListSize++;
+                countUrlNotMatchingQuads++;
             }
             count++;
             if (count % 1000 == 0){
                 logger.info("Processed " + Integer.toString(count) + " urls.");
             }
         }
-        logger.info("Number of quads without match geohash: " + Float.toString(avgQuadListSize ));
+        logger.info("Number of urls location without match geohash: "
+                + Float.toString(countUrlNotMatchingQuads));
         logger.info("partitionUrls finished");
     }
 }

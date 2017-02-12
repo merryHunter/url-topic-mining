@@ -14,14 +14,10 @@ public interface IQuadManager {
      * to each quad and set its location. */
     void partitionMapIntoQuads(Location topleft, Location bottomright, int S);
 
-    /** Resulting hashmap contains geohash of quad center and the quad id. */
-    MultivaluedHashMap<String, Long> createQuadHashMap();
-
     /** Resulting quad is the quad where queried URL belongs to.*/
     Quad selectQuadByUrlLocation(List<Quad> q, Location urllocation);
 
     /** Partition URLs over all quads. */
     void partitionUrls();
-
 
 }

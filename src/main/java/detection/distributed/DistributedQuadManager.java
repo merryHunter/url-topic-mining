@@ -19,11 +19,6 @@ public class DistributedQuadManager  implements IQuadManager{
     }
 
     @Override
-    public MultivaluedHashMap<String, Long> createQuadHashMap() {
-        return null;
-    }
-
-    @Override
     public Quad selectQuadByUrlLocation(List<Quad> q, Location l) {
         return null;
     }

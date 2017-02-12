@@ -26,25 +26,20 @@ public class Quad {
     final static Logger logger = Logger.getLogger(Quad.class);
 
     /** Кут діагоналі квадрата в напрямку якого рухаємо координату щоб знайти центр квадрата та правий нижній кут */
+    private static final int QUAD_DIAGONAL_BEARING_0 = 0;
     public static final int QUAD_DIAGONAL_BEARING_45 = 45;
     private static final int QUAD_DIAGONAL_BEARING_90 = 90;
     private static final int QUAD_DIAGONAL_BEARING_135 = 135;
     private static final int QUAD_DIAGONAL_BEARING_180 = 180;
-    private static final int QUAD_DIAGONAL_BEARING_0 = 0;
+    private static final int QUAD_SIDE_16 = 16;
 
     @Id
     private ObjectId id;
 
+    /** Quad id calculated by recursively dividing the map in 4 sub squares.*/
     private long qId;
 
-    public long getId() {
-        return qId;
-    }
-
-    public void setId(long id_) {
-        this.qId = id_;
-    }
-
+    /** Length of a side of the quad.*/
     private int qSide;
 
     private Location topleft, bottomright;
@@ -58,11 +53,7 @@ public class Quad {
     private String geoHash;
 
     /** URLs inside this quad. */
-    //TODO: transform this field to index pointer of urls?
-    //TODO: ensure ObjectId is the best. Perhaps String will fit better.
-    private List<ObjectId> urls = new LinkedList<>();
-
-
+    private List<String> urls = new LinkedList<>();
 
     public Quad(){}
 
@@ -78,12 +69,30 @@ public class Quad {
                         GeolocationUtil.GEOHASH_PRECISION);
     }
 
-    public Location getTopleft() {
-        return topleft;
-    }
-
-    public Location getBottomright() {
-        return bottomright;
+    /**
+     * Quad constructor that creates quad based on its topleft corner and side length
+     * @param topleft : Location of the top left vertex of a quad.
+     * @param quadSide : quad side length
+     */
+    public Quad(Location topleft, int quadSide){
+        this.topleft = topleft;
+        this.bottomright = GeolocationUtil.getNewLocation(
+                topleft.getLatitude(),
+                topleft.getLongitude(),
+                QUAD_DIAGONAL_BEARING_135,
+                Math.sqrt(quadSide*quadSide + quadSide*quadSide)
+        );
+        this.qSide = quadSide;
+        Location center = getCenter();
+        if (quadSide == QUAD_SIDE_16) { // геохеш тільки для найменших квадратів
+            geoHash = GeoHash
+                    .geoHashStringWithCharacterPrecision(
+                            center.getLatitude(),
+                            center.getLongitude(),
+                            GeolocationUtil.GEOHASH_PRECISION);
+        }else {
+            geoHash = null;
+        }
     }
 
     public Location calcBottomLeft() {
@@ -104,33 +113,6 @@ public class Quad {
         );
     }
 
-    /**
-     * Quad constructor that creates quad based on its topleft corner and side length
-     * @param topleft
-     * @param quadSide : quad side length
-     */
-    public Quad(Location topleft, int quadSide){
-        this.topleft = topleft;
-        this.bottomright = GeolocationUtil.getNewLocation(
-                topleft.getLatitude(),
-                topleft.getLongitude(),
-                QUAD_DIAGONAL_BEARING_135,
-                Math.sqrt(quadSide*quadSide + quadSide*quadSide)
-        );
-        this.qSide = quadSide;
-        Location center = getCenter();
-        if (quadSide == 16) { // геохеш тільки для найменших квадратів
-            geoHash = GeoHash
-                    .geoHashStringWithCharacterPrecision(
-                            center.getLatitude(),
-                            center.getLongitude(),
-                            GeolocationUtil.GEOHASH_PRECISION);
-        }else {
-            geoHash = null;
-        }
-    }
-
-
     public Location getCenter(){
        return GeolocationUtil.getNewLocation(
                topleft.getLatitude(),
@@ -140,19 +122,31 @@ public class Quad {
        ); //корінь суми квадратів катетів поділений на 2 - центр гіпотенузи
     }
 
+    /**
+     * Getter & setters
+     */
+
+    public Location getTopleft() {
+        return topleft;
+    }
+
+    public Location getBottomright() {
+        return bottomright;
+    }
+
     public void setStats(Hashtable<String, Integer> stats) {
         this.stats = stats;
     }
 
-    public void setUrls(List<ObjectId> urls) {
+    public void setUrls(List<String> urls) {
         this.urls = urls;
     }
 
-    public List<ObjectId> getUrls() {
+    public List<String> getUrls() {
         return urls;
     }
 
-    public void addUrl(ObjectId url){
+    public void addUrl(String url){
         urls.add(url);
     }
 
@@ -166,6 +160,14 @@ public class Quad {
 
     public int getqSide() {
         return qSide;
+    }
+
+    public long getId() {
+        return qId;
+    }
+
+    public void setId(long id_) {
+        this.qId = id_;
     }
 
     @Override
