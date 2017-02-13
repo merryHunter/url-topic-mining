@@ -3,6 +3,7 @@ import org.junit.*;
 
 import javax.ws.rs.core.MultivaluedHashMap;
 
+import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -57,11 +58,18 @@ public class RandomTestsFIleTest {
                 "machine\t1\n" +
                 "extraction\t1\n";
         Matcher m = Pattern.compile("\\n(([a-z]*)\\t)").matcher(x);
+        Matcher counts = Pattern.compile("\\t(([0-9]*)\\n)").matcher(x);
         List<String> topics = new LinkedList<>();
-        while(m.find()) {
+        Hashtable<String, Integer> table = new Hashtable<>();
+        while(m.find() && counts.find()) {
             topics.add(m.group(1).trim());
+            table.put(m.group(1).trim(), Integer.parseInt(counts.group(1).trim()));
         }
-        System.out.println(topics);
+        while(counts.find()){
+            String s = counts.group(1).trim();
+            System.out.println(s);
+        }
+        System.out.println(table);
     }
 
     @Test

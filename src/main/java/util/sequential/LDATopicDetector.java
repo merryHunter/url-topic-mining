@@ -20,9 +20,12 @@ public class LDATopicDetector {
     private static final Logger logger = Logger.getLogger(LDATopicDetector.class);
 
     /**
-     * Number of topics to detect.
+     * Minimum number of topics to detect.
      */
-    private static final int NUM_TOPICS = 2;
+    private static final int MIN_NUM_TOPICS = 2;
+
+
+    private static final int NUM_WORDS = 5;
 
     /**
      *  Compute topic statistics for all urls in the list.
@@ -57,23 +60,42 @@ public class LDATopicDetector {
         InstanceList instances = new InstanceList (new SerialPipes(pipeList));
         instances.addThruPipe(new ArrayIterator(htmlList));
 
-//        int numTopics = htmlList.size();
-        //TODO: compute NUM_TOPICS depending on the number of urls!
-        ParallelTopicModel model = new ParallelTopicModel(NUM_TOPICS, 1.0, 0.01);
+        int length = htmlList.size();
+        int num_topics = 0;
+        if ( length >= 3000 ){
+            while(length >= 10) length /=10;
+            num_topics = 15  + length;
+        } else if ( length >= 100){
+            while(length >= 10) length /=10;
+            num_topics = length + MIN_NUM_TOPICS;
+        }else if( length >= 10){
+            while(length >= 10) length /=10;
+            num_topics = length + MIN_NUM_TOPICS;
+        } else{
+            num_topics = MIN_NUM_TOPICS;
+        }
+        logger.info("URLS length:" + Integer.toString(length));
+        logger.info("Topicsnumber: " + Integer.toString(num_topics));
+        ParallelTopicModel model = new ParallelTopicModel(num_topics, 1.0, 0.01);
         model.addInstances(instances);
         model.setNumThreads(1);
         model.setNumIterations(50);
         model.estimate();
 
         // compute stats
-        String topWords = model.displayTopWords(5, true);
-        Matcher m = Pattern.compile("\\n(([a-z]*)\\t)").matcher(topWords);
         Hashtable<String, Integer> topicsStats = new Hashtable<>();
-        while(m.find()) {
-            //TODO: extract topic count from topWords!
-            topicsStats.put(m.group(1).trim(), 1);
+        String topWords = model.displayTopWords(NUM_WORDS, true);
+        Matcher m = Pattern.compile("\\n(([a-z]*)\\t)").matcher(topWords);
+        Matcher counts = Pattern.compile("\\t(([0-9]*)\\n)").matcher(topWords);
+        try {
+            while (m.find() && counts.find()) {
+                topicsStats.put(m.group(1).trim(),
+                        Integer.parseInt(counts.group(1).trim()));
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
         }
-        logger.info(topWords);
+        logger.info(topicsStats);
         return topicsStats;
     }
 

@@ -194,10 +194,15 @@ public class QuadManagerImpl implements IQuadManager{
                 .filter("urls exists", true);
         List<Quad> quadList = queryQuad.asList();
         int size = quadList.size();
+        int nUrls = 0;
         for (int i = 0; i < size; i++){
             Quad q = quadList.get(i);
             try {
-                q.setStats(LDATopicDetector.getTopicStatsByUrls(q.getUrls(), HtmlUtil.PAGE_TYPE.URL_LOCATION));
+                int urlSize = q.getUrls().size();
+                nUrls += urlSize;
+//                logger.info("Number of urls:" + Integer.toString(urlSize) + " quad id: " + q.getId());
+                q.setStats(LDATopicDetector.getTopicStatsByUrls(q.getUrls(),
+                                            HtmlUtil.PAGE_TYPE.URL_LOCATION));
                 datastore.save(q);
             }catch (Exception e){
                 logger.error("Unable to detect topics!");
@@ -207,6 +212,7 @@ public class QuadManagerImpl implements IQuadManager{
                 logger.info("Processed quads urls: " + Integer.toString(i));
             }
         }
-
+        logger.info("Average number of urls in quad: " +
+                Integer.toString(nUrls / quadList.size()));
     }
 }

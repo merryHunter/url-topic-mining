@@ -29,13 +29,18 @@ public class HtmlUtil {
     public static String getUrlLocationTokenized(String url){
         Matcher m = Pattern.compile("([a-z]*)").matcher(url);
         List<String> words = new LinkedList<>();
-        while(m.find()) {
-            String temp = m.group(1).trim();
-            if (!temp.equals(""))
-                words.add(temp);
+        try {
+            while(m.find()) {
+                String temp = m.group(1).trim();
+                if (!temp.equals(""))
+                    words.add(temp);
+            }
+            //remove extension - may be "" and thus throw exception
+            words.remove(words.size() - 1);
+        }catch (Exception e){
+            logger.error("Unable to get tokenized topics from url: " + url);
+            return "";
         }
-        //remove extension
-        words.remove(words.size() - 1);
         return words.toString();
     }
     public static List<String> getHtmlPages(List<String> urls, PAGE_TYPE page_type){
@@ -43,7 +48,8 @@ public class HtmlUtil {
         if (page_type == PAGE_TYPE.URL_LOCATION){
             for (String s : urls) {
                 String html = getUrlLocationTokenized(s);
-                htmlList.add(html);
+                if ( !html.equals(""))
+                    htmlList.add(html);
             }
         } else if (page_type == PAGE_TYPE.TITLE){
             for (String s : urls) {
