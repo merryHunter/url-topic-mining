@@ -10,7 +10,9 @@ import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Morphia;
 import org.mongodb.morphia.query.Query;
 import util.GeolocationUtil;
+import util.HtmlUtil;
 import util.MongoUtil;
+import util.sequential.LDATopicDetector;
 
 import java.util.List;
 
@@ -159,7 +161,8 @@ public class QuadManagerImpl implements IQuadManager{
             List<Quad> quadList = queryQuad.asList();
             Quad q = selectQuadByUrlLocation(quadList, new Location(lat, lon));
             if(q != null) {
-                q.addUrl((String) d.get("urls"));
+                String s = (String) d.get("urls");
+                q.addUrlsAll(s.split("\\|"));
                 datastore.save(q);
             } else {
                 logger.info("No quads match geohash: " +
@@ -176,5 +179,34 @@ public class QuadManagerImpl implements IQuadManager{
         logger.info("Number of urls location without match geohash: "
                 + Float.toString(countUrlNotMatchingQuads));
         logger.info("partitionUrls finished");
+    }
+
+
+//    @Override
+    public List<String> getTopics(Location topleft, Location bottomright, int S) {
+        return null;
+    }
+
+//    @Override
+    public void computeTopicStatsSmallestQuads(){
+        Query<Quad> queryQuad = datastore
+                .createQuery(Quad.class)
+                .filter("urls exists", true);
+        List<Quad> quadList = queryQuad.asList();
+        int size = quadList.size();
+        for (int i = 0; i < size; i++){
+            Quad q = quadList.get(i);
+            try {
+                q.setStats(LDATopicDetector.getTopicStatsByUrls(q.getUrls(), HtmlUtil.PAGE_TYPE.URL_LOCATION));
+                datastore.save(q);
+            }catch (Exception e){
+                logger.error("Unable to detect topics!");
+                logger.error(e.getMessage());
+            }
+            if (i % 10 == 0){
+                logger.info("Processed quads urls: " + Integer.toString(i));
+            }
+        }
+
     }
 }

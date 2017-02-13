@@ -5,11 +5,12 @@
 package detection;
 
 
+import java.util.Hashtable;
 import java.util.List;
 
 public interface ITopicDetector {
 
-    List<String> getTopicsByQuad(Quad q);
+    Hashtable<String, Integer> getTopicStatsByQuad(Quad q);
 
     List<String> getTopics(Location topleft, Location bottomright, int S);
 

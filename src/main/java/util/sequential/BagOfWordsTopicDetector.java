@@ -3,29 +3,30 @@
  */
 package util.sequential;
 
-import detection.ITopicDetector;
-import detection.Location;
-import detection.Quad;
-import weka.core.Instances;
-import weka.core.converters.ConverterUtils;
-import weka.filters.Filter;
-import weka.filters.unsupervised.attribute.StringToWordVector;
+
+import util.HtmlUtil;
 
 import java.util.Hashtable;
+import java.util.LinkedList;
 import java.util.List;
 
 
-public class WEKATopicDetector {
+public class BagOfWordsTopicDetector {
     public static Hashtable<String, Integer> getTopicStatsByUrls(List<String> urls) throws Exception{
-        String[] aurls = {"https://github.com/mimno/Mallet",
-                "https://docs.mongodb.com/manual/reference/mongo-shell/"};
-        StringToWordVector stringToWordVector = new StringToWordVector();
-        StringToWordVector filter = new StringToWordVector();
-        ConverterUtils.DataSource dataSource = new ConverterUtils.DataSource(aurls[0]);
-        Instances dataRaw = dataSource.getDataSet();
-        filter.setInputFormat(dataRaw);
-        Instances dataFiltered = Filter.useFilter(dataRaw, filter);
+        List<String> htmlList = new LinkedList<>();
 
-        return null;
+        for (String s : urls) {
+            try {
+                String html = HtmlUtil.getTitles(s);
+                //TODO: ensure we do not add empty lines!
+                htmlList.add(html);
+            }catch (Exception e){
+//                logger.error("Unable to fetch url:" + s + "\n" + e.getMessage());
+                System.out.println("error on fetching urls");
+            }
+        }
+        CountVectorizer countVectorizer = CountVectorizer.withDefaultSettings();
+        countVectorizer.fitTransform(htmlList);
+        return countVectorizer.getTokenToIndex();
     }
 }

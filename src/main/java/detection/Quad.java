@@ -10,6 +10,7 @@ import org.mongodb.morphia.annotations.*;
 import org.mongodb.morphia.utils.IndexType;
 import util.GeolocationUtil;
 
+import java.util.Collections;
 import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.List;
@@ -148,6 +149,10 @@ public class Quad {
 
     public void addUrl(String url){
         urls.add(url);
+    }
+
+    public void addUrlsAll(String[] urlsList){
+        Collections.addAll(urls, urlsList);
     }
 
     public String getGeoHash() {
