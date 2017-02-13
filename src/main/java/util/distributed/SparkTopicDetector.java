@@ -1,17 +1,18 @@
 /**
  * @author Ivan Chernukha on 06.02.17.
  */
-package detection.sequential;
+package detection.distributed;
 
-import detection.ITopicDetector;
 import detection.Location;
 import detection.Quad;
+import detection.ITopicDetector;
 
 import java.util.List;
 
-public class GeohashTopicDetector implements ITopicDetector {
+public class SparkTopicDetector implements ITopicDetector {
+
     @Override
-    public List<String> getTopicsByQuad(Quad q) {
+    public List<String> getTopicStatsByQuad(Quad q) {
         return null;
     }
 
