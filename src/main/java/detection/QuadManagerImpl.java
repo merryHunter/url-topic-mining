@@ -264,7 +264,7 @@ public class QuadManagerImpl implements IQuadManager{
      * @return
      */
     private List<Quad> getQuadsInsideGivenArea(Quad topLeftQuad, int nDiagonal){
-        
+
         return null;
     }
     //    @Override
