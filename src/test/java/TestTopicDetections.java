@@ -2,6 +2,7 @@ import cc.mallet.pipe.*;
 import cc.mallet.pipe.iterator.ArrayIterator;
 import cc.mallet.topics.ParallelTopicModel;
 import cc.mallet.types.InstanceList;
+import detection.Location;
 import detection.QuadManagerImpl;
 import smile.data.SparseDataset;
 import util.HtmlUtil;
@@ -25,8 +26,16 @@ public class TestTopicDetections {
 //        ITopicDetector topicDetector = new LDATopicDetector();
 //        topicDetector.getTopics(new Location(47.185257, 8.206737), new Location(0.0,0.0), 2);
         QuadManagerImpl quadManager = new QuadManagerImpl();
+        quadManager.partitionMapIntoQuads(
+                new Location(47.185257, 8.206737), new Location(0.0,0.0), 2);
+        quadManager.partitionUrls();
         quadManager.computeTopicStatsSmallestQuads();
+    }
 
+    @Test
+    public void onTestGetTopics(){
+        QuadManagerImpl quadManager = new QuadManagerImpl();
+        quadManager.getTopics(new Location(46.064322, 11.123587), new Location(0.0,0.0), 19);
     }
 
     @Test

@@ -41,5 +41,28 @@ public class GeolocationUtil {
         return new Location(lat2, lon2);
     }
 
+    /**
+     * Get zoom level. In fact, calculate closest previous power of two -
+     * quad side to display. //TODO: rewrite description!
+     * @param x
+     * @return
+     */
+    public static int getQuadSideClosestToGivenStep(int x){
+        x = x | (x >> 1);
+        x = x | (x >> 2);
+        x = x | (x >> 4);
+        x = x | (x >> 8);
+        x = x | (x >> 16);
+        return x - (x >> 1);
+    }
 
+    public static int getLevel(int bits){
+        int log = 0;
+        if( ( bits & 0xffff0000 ) != 0 ) { bits >>>= 16; log = 16; }
+        if( bits >= 256 ) { bits >>>= 8; log += 8; }
+        if( bits >= 16  ) { bits >>>= 4; log += 4; }
+        if( bits >= 4   ) { bits >>>= 2; log += 2; }
+        log +=  ( bits >>> 1 );
+        return log;
+    }
 }

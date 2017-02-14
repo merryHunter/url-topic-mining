@@ -86,4 +86,29 @@ public class RandomTestsFIleTest {
         words.remove(words.size() - 1);
         System.out.println(words.toString());
     }
+
+    @Test
+    public void onTestPreviousPowerOfTwo(){
+        int x = 1028;
+        x = x | (x >> 1);
+        x = x | (x >> 2);
+        x = x | (x >> 4);
+//        x = x | (x >> 8);
+        x = x | (x >> 16);
+        x =  x - (x >> 1);
+        System.out.println(x);
+    }
+
+    @Test
+    public void onTestLevel(){
+        int bits = 1024;
+        int log = 0;
+        if( ( bits & 0xffff0000 ) != 0 ) { bits >>>= 16; log = 16; }
+        if( bits >= 256 ) { bits >>>= 8; log += 8; }
+        if( bits >= 16  ) { bits >>>= 4; log += 4; }
+        if( bits >= 4   ) { bits >>>= 2; log += 2; }
+        log +=  ( bits >>> 1 );
+        System.out.println(log);
+
+    }
 }

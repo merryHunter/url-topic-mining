@@ -28,12 +28,11 @@ public class Quad {
 
     /** Кут діагоналі квадрата в напрямку якого рухаємо координату щоб знайти центр квадрата та правий нижній кут */
     private static final int QUAD_DIAGONAL_BEARING_0 = 0;
-    public static final int QUAD_DIAGONAL_BEARING_45 = 45;
+    private static final int QUAD_DIAGONAL_BEARING_45 = 45;
     private static final int QUAD_DIAGONAL_BEARING_90 = 90;
     private static final int QUAD_DIAGONAL_BEARING_135 = 135;
     private static final int QUAD_DIAGONAL_BEARING_180 = 180;
-    private static final int QUAD_SIDE_16 = 16;
-
+    public static final int QUAD_SIDE = 8;
     @Id
     private ObjectId id;
 
@@ -85,7 +84,7 @@ public class Quad {
         );
         this.qSide = quadSide;
         Location center = getCenter();
-        if (quadSide == QUAD_SIDE_16) { // геохеш тільки для найменших квадратів
+        if (quadSide == QUAD_SIDE) { // geoHash only for the smallest quads
             geoHash = GeoHash
                     .geoHashStringWithCharacterPrecision(
                             center.getLatitude(),
