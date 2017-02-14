@@ -56,26 +56,13 @@ public class LDATopicDetector {
         pipeList.add( new TokenSequenceRemoveStopwords(
                 new File("stoplist-en.txt"), "UTF-8", false, false, false) );
         pipeList.add( new TokenSequence2FeatureSequence() );
-
         InstanceList instances = new InstanceList (new SerialPipes(pipeList));
         instances.addThruPipe(new ArrayIterator(htmlList));
 
-        int length = htmlList.size();
-        int num_topics = 0;
-        if ( length >= 3000 ){
-            while(length >= 10) length /=10;
-            num_topics = 15  + length;
-        } else if ( length >= 100){
-            while(length >= 10) length /=10;
-            num_topics = length + MIN_NUM_TOPICS;
-        }else if( length >= 10){
-            while(length >= 10) length /=10;
-            num_topics = length + MIN_NUM_TOPICS;
-        } else{
-            num_topics = MIN_NUM_TOPICS;
-        }
-        logger.info("URLS length:" + Integer.toString(length));
+        int num_topics = getNumTopics(htmlList.size());
+        logger.info("URLS length:" + Integer.toString(htmlList.size()));
         logger.info("Topicsnumber: " + Integer.toString(num_topics));
+
         ParallelTopicModel model = new ParallelTopicModel(num_topics, 1.0, 0.01);
         model.addInstances(instances);
         model.setNumThreads(1);
@@ -99,4 +86,20 @@ public class LDATopicDetector {
         return topicsStats;
     }
 
+    private static int getNumTopics(int length){
+        int num_topics = 0;
+        if ( length >= 3000 ){
+            while(length >= 10) length /=10;
+            num_topics = 15  + length;
+        } else if ( length >= 100){
+            while(length >= 10) length /=10;
+            num_topics = length + MIN_NUM_TOPICS;
+        }else if( length >= 10){
+            while(length >= 10) length /=10;
+            num_topics = length + MIN_NUM_TOPICS;
+        } else{
+            num_topics = MIN_NUM_TOPICS;
+        }
+        return num_topics;
+    }
 }

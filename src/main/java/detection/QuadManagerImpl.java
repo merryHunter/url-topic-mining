@@ -190,7 +190,8 @@ public class QuadManagerImpl implements IQuadManager{
 
 
 //    @Override
-    public Hashtable<Long, String> getTopics(Location topleft, Location bottomright, int S) {
+    //TODO: change signature of the function from hashtable to ...
+    public Hashtable<Long, String> getTopics(Location topleft, double distanceToBottomRight, int S) {
         int qSide = GeolocationUtil.getQuadSideClosestToGivenStep(S);
         int level = GeolocationUtil.getLevel(qSide);
         if (qSide < Quad.QUAD_SIDE){
@@ -213,14 +214,22 @@ public class QuadManagerImpl implements IQuadManager{
                 .createQuery(Quad.class).filter("qId ==", topQuadId);
         Quad topQuad = queryQuad.asList().get(0);
         System.out.println(topQuad);
-        calculateStatsForQuad(topQuad, qSide);
+        //how many quads on a diagonal
+        int nDiagonal = (int)(distanceToBottomRight / Quad.QUAD_DIAGONAL);
+        List<Quad> quadsInsideGivenArea = getQuadsInsideGivenArea(topQuad, nDiagonal);
+        for(Quad q: quadsInsideGivenArea) {
+            calculateStatsForQuad(q, qSide);
+            //TODO:on the current top level too many values - how to select only top-n for viewving?
+
+        }
         return null;
     }
 
     private void calculateStatsForQuad(Quad quad, int qSide) {
-//
+        // if current quad side is the minimal one, so no quads inside this
         if (quad.getqSide() == Quad.QUAD_SIDE)
             return;
+        //get quads inside current
         List<Quad> quadsInsideCurrent = getQuadsInsideQuad(quad.getId());
         for(Quad q: quadsInsideCurrent) {
             calculateStatsForQuad(q, qSide);
@@ -231,12 +240,14 @@ public class QuadManagerImpl implements IQuadManager{
             if(q.getStats() != null)
                 table.putAll(q.getStats());
         }
-        System.out.println(table);
+        if( !table.isEmpty()) {
+            quad.setStats(table);
+            datastore.save(quad);
+        }
     }
 
     private List<Quad> getQuadsInsideQuad(long quadId){
-        Query<Quad> q = datastore
-                .createQuery(Quad.class);
+        Query<Quad> q = datastore.createQuery(Quad.class);
         q.or(
                 q.criteria("qId").equal(quadId*10 + 0),
                 q.criteria("qId").equal(quadId*10 + 1),
@@ -246,6 +257,16 @@ public class QuadManagerImpl implements IQuadManager{
         return q.asList();
     }
 
+    /**
+     *
+     * @param topLeftQuad
+     * @param nDiagonal : how many quads on the diagonal
+     * @return
+     */
+    private List<Quad> getQuadsInsideGivenArea(Quad topLeftQuad, int nDiagonal){
+        
+        return null;
+    }
     //    @Override
     public void computeTopicStatsSmallestQuads(){
         Query<Quad> queryQuad = datastore

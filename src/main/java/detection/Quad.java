@@ -33,6 +33,7 @@ public class Quad {
     private static final int QUAD_DIAGONAL_BEARING_135 = 135;
     private static final int QUAD_DIAGONAL_BEARING_180 = 180;
     public static final int QUAD_SIDE = 8;
+    public static final double QUAD_DIAGONAL = Math.sqrt(QUAD_SIDE * QUAD_SIDE);
     @Id
     private ObjectId id;
 

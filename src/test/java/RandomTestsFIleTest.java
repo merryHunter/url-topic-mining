@@ -3,9 +3,7 @@ import org.junit.*;
 
 import javax.ws.rs.core.MultivaluedHashMap;
 
-import java.util.Hashtable;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -110,5 +108,70 @@ public class RandomTestsFIleTest {
         log +=  ( bits >>> 1 );
         System.out.println(log);
 
+    }
+
+    @Test
+    public void onTestGetTopFromHashtable(){
+        Hashtable<String, Integer> map = new Hashtable<>();
+
+        map.put("zip000", 1234);
+        map.put("zip001", 2345);
+        map.put("zip002", 3456);
+        map.put("zip003", 4567);
+        map.put("zip004", 5678);
+        map.put("zip005", 6789);
+        map.put("zip006", 123);
+        map.put("zip007", 234);
+        map.put("zip008", 456);
+        map.put("zip009", 567);
+        map.put("zip010", 7890);
+        map.put("zip011", 678);
+        map.put("zip012", 789);
+        map.put("zip013", 890);
+
+        int n = 5;
+        List<Map.Entry<String, Integer>> greatest = findGreatest(map, 5);
+        Hashtable<String, Integer> map1 = new Hashtable<>();
+        map1.putAll((Map<? extends String, ? extends Integer>) greatest);
+        System.out.println("Top "+n+" entries:");
+        for (Map.Entry<String, Integer> entry : greatest)
+        {
+            System.out.println(entry);
+
+        }
+        System.out.println(map1);
+    }
+
+    private static <K, V extends Comparable<? super V>> List<Map.Entry<K, V>>
+    findGreatest(Map<K, V> map, int n)
+    {
+        Comparator<? super Map.Entry<K, V>> comparator =
+                new Comparator<Map.Entry<K, V>>()
+                {
+                    @Override
+                    public int compare(Map.Entry<K, V> e0, Map.Entry<K, V> e1)
+                    {
+                        V v0 = e0.getValue();
+                        V v1 = e1.getValue();
+                        return v0.compareTo(v1);
+                    }
+                };
+        PriorityQueue<Map.Entry<K, V>> highest =
+                new PriorityQueue<Map.Entry<K,V>>(n, comparator);
+        for (Map.Entry<K, V> entry : map.entrySet())
+        {
+            highest.offer(entry);
+            while (highest.size() > n)
+            {
+                highest.poll();
+            }
+        }
+
+        List<Map.Entry<K, V>> result = new ArrayList<Map.Entry<K,V>>();
+        while (highest.size() > 0)
+        {
+            result.add(highest.poll());
+        }
+        return result;
     }
 }

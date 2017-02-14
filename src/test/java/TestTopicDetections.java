@@ -35,7 +35,7 @@ public class TestTopicDetections {
     @Test
     public void onTestGetTopics(){
         QuadManagerImpl quadManager = new QuadManagerImpl();
-        quadManager.getTopics(new Location(46.064322, 11.123587), new Location(0.0,0.0), 19);
+        quadManager.getTopics(new Location(46.064322, 11.123587), new Location(0.0,0.0), 44);
     }
 
     @Test
