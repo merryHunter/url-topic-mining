@@ -4,6 +4,9 @@ import cc.mallet.topics.ParallelTopicModel;
 import cc.mallet.types.InstanceList;
 import detection.Location;
 import detection.QuadManagerImpl;
+import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.sql.Dataset;
 import smile.data.SparseDataset;
 import util.HtmlUtil;
 import util.sequential.CountVectorizer;
@@ -15,6 +18,14 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.sql.SparkSession;
+import org.bson.Document;
+
+import com.mongodb.spark.MongoSpark;
+import com.mongodb.spark.config.ReadConfig;
+import com.mongodb.spark.rdd.api.java.JavaMongoRDD;
+
 /**
  * @author Ivan Chernukha on 12.02.17.
  */
@@ -22,9 +33,36 @@ import java.util.regex.Pattern;
 public class TestTopicDetections {
 
     @Test
-    public void onTestSequential(){
-//        ITopicDetector topicDetector = new LDATopicDetector();
-//        topicDetector.getTopics(new Location(47.185257, 8.206737), new Location(0.0,0.0), 2);
+    public void onTestDistributed(){
+
+    }
+
+    @Test
+    public void onTestSparkMongodbConnector() {
+        SparkSession spark = SparkSession.builder()
+                .master("local")
+                .appName("MongoSparkConnectorIntro")
+                .config("spark.mongodb.input.uri", "mongodb://127.0.0.1/morphia_test.quad")
+                .config("spark.mongodb.output.uri", "mongodb://127.0.0.1/morphia_test.quad")
+                .getOrCreate();
+
+        // Create a JavaSparkContext using the SparkSession's SparkContext object
+        JavaSparkContext jsc = new JavaSparkContext(spark.sparkContext());
+
+        /*Start Example: Read data from MongoDB************************/
+        JavaMongoRDD<Document> rdd = MongoSpark.load(jsc);
+        /*End Example**************************************************/
+
+        // Analyze data from MongoDB
+        System.out.println(rdd.count());
+        System.out.println(rdd.first().toJson());
+
+        jsc.close();
+    }
+
+
+    @Test
+    public void onTestPrecomputingGetTopics(){
         QuadManagerImpl quadManager = new QuadManagerImpl();
         quadManager.partitionMapIntoQuads(
                 new Location(47.185257, 8.206737), new Location(0.0,0.0), 2);
@@ -38,6 +76,19 @@ public class TestTopicDetections {
         quadManager.getTopics(new Location(46.064322, 11.123587), 1.0d, 44);
     }
 
+    @Test
+    public void onTestPrecomputingGetTopicsByRerun(){
+        QuadManagerImpl quadManager = new QuadManagerImpl();
+        quadManager.partitionMapIntoQuads(
+                new Location(47.185257, 8.206737), new Location(0.0,0.0), 2);
+        quadManager.partitionUrls();
+    }
+
+    @Test
+    public void onTestGetTopicsByRerun(){
+        QuadManagerImpl quadManager = new QuadManagerImpl();
+        quadManager.getTopicsByRerun(new Location(46.064322, 11.123587), 1.0d, 44);
+    }
     @Test
     public void onTestMalletTopicDetection() throws IOException {
 

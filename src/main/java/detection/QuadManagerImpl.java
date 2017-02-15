@@ -15,7 +15,9 @@ import util.MongoUtil;
 import util.sequential.LDATopicDetector;
 
 import java.util.Hashtable;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Created by Dmytro on 06/02/2017.
@@ -147,6 +149,8 @@ public class QuadManagerImpl implements IQuadManager{
         logger.info("partitionUrls started");
         int count = 0;                  // count processed urls
         URLs = mongoDatabase.getCollection(URL_COLLECTION);
+        int nSameQuadGeohash = 0;
+        int m = 0;
         try {
             for (Object o : URLs.find()) { // .batchSize(128)
                 Document d = (Document) o;
@@ -162,6 +166,11 @@ public class QuadManagerImpl implements IQuadManager{
                         .createQuery(Quad.class)
                         .filter("geoHash ==", urlHash);
                 List<Quad> quadList = queryQuad.asList();
+                nSameQuadGeohash += quadList.size();
+                if(quadList.size() > m){
+                    m = quadList.size();
+                }
+                logger.info("Same geoHash retrieved:" + Integer.toString(quadList.size()));
                 Quad q = selectQuadByUrlLocation(quadList, new Location(lat, lon));
                 if (q != null) {
                     String s = (String) d.get("urls");
@@ -176,12 +185,14 @@ public class QuadManagerImpl implements IQuadManager{
                 }
                 count++;
                 if (count % 1000 == 0) {
-                    logger.info("Processed " + Integer.toString(count) + " urls.");
+                    logger.info("Processed " + Integer.toString(count) + " urls." +
+                            "Avg number of same quad geohash: " + Integer.toString(nSameQuadGeohash / count));
                 }
             }
-            logger.info("Number of urls location without match geohash: "
+            logger.info("Number of urls location without match quads: "
                     + Float.toString(countUrlNotMatchingQuads));
             logger.info("partitionUrls finished");
+            logger.info(m);
         }catch (Exception e){
             logger.error(e.getMessage());
             logger.error("partitionUrls interrupted by mongodb error!");
@@ -204,6 +215,7 @@ public class QuadManagerImpl implements IQuadManager{
                                     GeolocationUtil.GEOHASH_PRECISION);
         Query<Quad> queryQuad = datastore
                 .createQuery(Quad.class).filter("geoHash ==", geoHashTopLeft);
+        //TODO: too many quads for a geoHash (~20) !! What should we do?
         Quad quadTopLeft = queryQuad.asList().get(0);
         long topQuadId = quadTopLeft.getId();
         while(level > 3) {          // 2^3 == 8 == QUAD.QUAD_SIDE
@@ -225,6 +237,7 @@ public class QuadManagerImpl implements IQuadManager{
         return null;
     }
 
+    //TODO: check if quad already contains computed stats before computing!!!
     private void calculateStatsForQuad(Quad quad, int qSide) {
         // if current quad side is the minimal one, so no quads inside this
         if (quad.getqSide() == Quad.QUAD_SIDE)
@@ -258,15 +271,18 @@ public class QuadManagerImpl implements IQuadManager{
     }
 
     /**
-     *
+     * Collect quads the same side side as the given quad, on the same
+     * zoom level.
      * @param topLeftQuad
      * @param nDiagonal : how many quads on the diagonal
      * @return
      */
     private List<Quad> getQuadsInsideGivenArea(Quad topLeftQuad, int nDiagonal){
-
-        return null;
+        List<Quad> quads = new LinkedList<>();
+        quads.add(topLeftQuad);
+        return quads;
     }
+
     //    @Override
     public void computeTopicStatsSmallestQuads(){
         Query<Quad> queryQuad = datastore
@@ -295,4 +311,82 @@ public class QuadManagerImpl implements IQuadManager{
         logger.info("Average number of urls in quad: " +
                 Integer.toString(nUrls / quadList.size()));
     }
+
+
+    /**
+     * Following methods refer to the baseline algorithm,
+     * which detects topics be RERUNNING in each quad. So instead of
+     * computing topics stats for smallest quads, directly compute stats for
+     * urls inside quads.
+     */
+
+    public Hashtable<Quad, Set<String>> getTopicsByRerun(
+            Location topleft, double distanceToBottomRight, int S){
+        int qSide = GeolocationUtil.getQuadSideClosestToGivenStep(S);
+        int level = GeolocationUtil.getLevel(qSide);
+        if (qSide < Quad.QUAD_SIDE){
+            //TODO:
+            return null;
+        }
+        String geoHashTopLeft = GeoHash.geoHashStringWithCharacterPrecision(
+                topleft.getLatitude(),
+                topleft.getLongitude(),
+                GeolocationUtil.GEOHASH_PRECISION);
+        Query<Quad> queryQuad = datastore
+                .createQuery(Quad.class).filter("geoHash ==", geoHashTopLeft);
+        Quad quadTopLeft = queryQuad.asList().get(0);
+        long topQuadId = quadTopLeft.getId();
+        while(level > 3) {          // 2^3 == 8 == QUAD.QUAD_SIDE
+            topQuadId /= 10;
+            level--;
+        }
+        queryQuad = datastore
+                .createQuery(Quad.class).filter("qId ==", topQuadId);
+        Quad topQuad = queryQuad.asList().get(0);
+        System.out.println(topQuad);
+        //how many quads on a diagonal
+        int nDiagonal = (int)(distanceToBottomRight / Quad.QUAD_DIAGONAL);
+        List<Quad> quadsInsideGivenArea = getQuadsInsideGivenArea(topQuad, nDiagonal);
+        Hashtable<Quad, Set<String>> result = new Hashtable<>();
+        int nUrls = 0;
+        for(Quad q: quadsInsideGivenArea) {
+            List<String> urlsInsideQuad = getAllUrlsInsideQuad(q);
+            int size = urlsInsideQuad.size();
+            logger.info("Number of urlsInsideQuad: " +
+                    Integer.toString(size ));
+            nUrls += size;
+            for (int i = 0; i < size; i++){
+                try {
+                    result.put(q, LDATopicDetector
+                            .getTopicStatsByUrls(urlsInsideQuad,
+                                    HtmlUtil.PAGE_TYPE.URL_LOCATION).keySet());
+                }catch (Exception e){
+                    logger.error("Unable to detect topics!");
+                    logger.error(e.getMessage());
+                }
+            }
+        }
+        logger.info("Average number of urls in quad: " +
+                Integer.toString(nUrls / quadsInsideGivenArea.size()));
+        return result;
+    }
+
+    private List<String> getAllUrlsInsideQuad(Quad quad) {
+        if (quad.getqSide() == Quad.QUAD_SIDE)
+            return null;
+        //get quads inside current
+        List<Quad> quadsInsideCurrent = getQuadsInsideQuad(quad.getId());
+        //recursively get quads urls
+        List<String> result = new LinkedList<>();
+        result.addAll(quad.getUrls());
+        for (Quad q : quadsInsideCurrent){
+            List<String> urls = getAllUrlsInsideQuad(q);
+            if (urls != null) {
+                result.addAll(urls);
+            }
+        }
+        return result;
+    }
+
+
 }

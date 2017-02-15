@@ -10,7 +10,7 @@ import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.List;
 
-
+@Deprecated
 public class BagOfWordsTopicDetector {
     public static Hashtable<String, Integer> getTopicStatsByUrls(List<String> urls) throws Exception{
         List<String> htmlList = new LinkedList<>();
