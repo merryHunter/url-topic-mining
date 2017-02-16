@@ -35,6 +35,7 @@ public class LDATopicDetector {
      */
     public static Hashtable<String, Integer> getTopicStatsByUrls(
             List<String> urls, HtmlUtil.PAGE_TYPE page_type) throws Exception {
+        logger.info("getTopicStatsByUrls started");
         // curl url's
         List<String> htmlList = null;
         if (page_type == HtmlUtil.PAGE_TYPE.URL_LOCATION){
@@ -82,7 +83,8 @@ public class LDATopicDetector {
         } catch (Exception e) {
             logger.error(e.getMessage());
         }
-        logger.info(topicsStats);
+//        logger.info(topicsStats);
+        logger.info("getTopicStatsByUrls finished");
         return topicsStats;
     }
 

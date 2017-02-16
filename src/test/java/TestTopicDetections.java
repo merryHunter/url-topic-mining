@@ -2,6 +2,7 @@ import cc.mallet.pipe.*;
 import cc.mallet.pipe.iterator.ArrayIterator;
 import cc.mallet.topics.ParallelTopicModel;
 import cc.mallet.types.InstanceList;
+import detection.IQuadManager;
 import detection.Location;
 import detection.QuadManagerImpl;
 import org.apache.spark.SparkConf;
@@ -9,6 +10,7 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.sql.Dataset;
 import smile.data.SparseDataset;
 import util.HtmlUtil;
+import util.distributed.DistributedQuadManager;
 import util.sequential.CountVectorizer;
 import org.junit.Test;
 
@@ -31,11 +33,6 @@ import com.mongodb.spark.rdd.api.java.JavaMongoRDD;
  */
 
 public class TestTopicDetections {
-
-    @Test
-    public void onTestDistributed(){
-
-    }
 
     @Test
     public void onTestSparkMongodbConnector() {
@@ -65,9 +62,9 @@ public class TestTopicDetections {
     public void onTestPrecomputingGetTopics(){
         QuadManagerImpl quadManager = new QuadManagerImpl();
         quadManager.partitionMapIntoQuads(
-                new Location(47.185257, 8.206737), new Location(0.0,0.0), 2);
+                new Location(46.498606, 11.35204), new Location(0.0,0.0), 2);
         quadManager.partitionUrls();
-        quadManager.computeTopicStatsSmallestQuads();
+//        quadManager.computeTopicStatsSmallestQuads();
     }
 
     @Test

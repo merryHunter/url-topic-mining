@@ -10,6 +10,7 @@ import org.mongodb.morphia.annotations.*;
 import org.mongodb.morphia.utils.IndexType;
 import util.GeolocationUtil;
 
+import java.io.Serializable;
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.LinkedList;
@@ -23,7 +24,7 @@ import java.util.List;
         @Index(fields = @Field(value = "geohash", type = IndexType.TEXT)),
         @Index(fields = @Field(value = "qId", type = IndexType.ASC))
 })
-public class Quad {
+public class Quad implements Serializable {
     final static Logger logger = Logger.getLogger(Quad.class);
 
     /** Кут діагоналі квадрата в напрямку якого рухаємо координату щоб знайти центр квадрата та правий нижній кут */
@@ -183,4 +184,34 @@ public class Quad {
                 "Bottomleft: " + this.calcBottomLeft().toString() + "\n" +
                 "Center: " + this.getCenter();
     }
+
+    public void setId(ObjectId id) {
+        this.id = id;
+    }
+
+    public long getqId() {
+        return qId;
+    }
+
+    public void setqId(long qId) {
+        this.qId = qId;
+    }
+
+    public void setqSide(int qSide) {
+        this.qSide = qSide;
+    }
+
+    public void setTopleft(Location topleft) {
+        this.topleft = topleft;
+    }
+
+    public void setBottomright(Location bottomright) {
+        this.bottomright = bottomright;
+    }
+
+    public void setGeoHash(String geoHash) {
+        this.geoHash = geoHash;
+    }
+
+
 }

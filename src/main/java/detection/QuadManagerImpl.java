@@ -26,11 +26,11 @@ public class QuadManagerImpl implements IQuadManager{
 
     static final Logger logger = Logger.getLogger(QuadManagerImpl.class);
 
-    private static final String DATABASE_NAME = "morphia_test";
+    protected static final String DATABASE_NAME = "morphia_test";
 
-    private static final String URL_COLLECTION = "output";
+    protected static final String URL_COLLECTION = "output";
 
-    private static final String QUAD_COLLECTION = "quad";
+    protected static final String QUAD_COLLECTION = "quad";
 
     private static final int MINIMAL_SIDE = 16;
 
@@ -47,7 +47,7 @@ public class QuadManagerImpl implements IQuadManager{
 
     private Morphia morphia;
 
-    private Datastore datastore;
+    protected Datastore datastore;
 
     private int countUrlNotMatchingQuads = 0;
 
@@ -200,7 +200,7 @@ public class QuadManagerImpl implements IQuadManager{
     }
 
 
-//    @Override
+    @Override
     //TODO: change signature of the function from hashtable to ...
     public Hashtable<Long, String> getTopics(Location topleft, double distanceToBottomRight, int S) {
         int qSide = GeolocationUtil.getQuadSideClosestToGivenStep(S);
@@ -237,6 +237,7 @@ public class QuadManagerImpl implements IQuadManager{
         return null;
     }
 
+
     //TODO: check if quad already contains computed stats before computing!!!
     private void calculateStatsForQuad(Quad quad, int qSide) {
         // if current quad side is the minimal one, so no quads inside this
@@ -258,6 +259,7 @@ public class QuadManagerImpl implements IQuadManager{
             datastore.save(quad);
         }
     }
+
 
     private List<Quad> getQuadsInsideQuad(long quadId){
         Query<Quad> q = datastore.createQuery(Quad.class);
@@ -283,7 +285,8 @@ public class QuadManagerImpl implements IQuadManager{
         return quads;
     }
 
-    //    @Override
+
+    @Override
     public void computeTopicStatsSmallestQuads(){
         Query<Quad> queryQuad = datastore
                 .createQuery(Quad.class)
@@ -370,6 +373,7 @@ public class QuadManagerImpl implements IQuadManager{
                 Integer.toString(nUrls / quadsInsideGivenArea.size()));
         return result;
     }
+
 
     private List<String> getAllUrlsInsideQuad(Quad quad) {
         if (quad.getqSide() == Quad.QUAD_SIDE)

@@ -21,7 +21,7 @@ public interface IQuadManager {
     /** Partition URLs over all quads. */
     void partitionUrls();
 
-//    List<String> getTopics(Location topleft, Location bottomright, int S);
+    Hashtable<Long, String> getTopics(Location topleft, double distanceToBottomRight, int S);
 
-//    void computeTopicStatsByQuad(Quad q);
+    void computeTopicStatsSmallestQuads();
 }

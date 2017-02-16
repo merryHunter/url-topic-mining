@@ -6,11 +6,13 @@ package detection;
 import org.mongodb.morphia.annotations.Entity;
 import org.mongodb.morphia.annotations.Property;
 
+import java.io.Serializable;
+
 /**
  * Geographical location.
  * */
 @Entity("location")
-public class Location {
+public class Location implements Serializable {
 
     @Property("lat")
     private double latitude;
@@ -37,5 +39,13 @@ public class Location {
     public String toString() {
         return "Lat: " + Double.toString(latitude) +
                 ", Lon: " + Double.toString(longitude);
+    }
+
+    public void setLatitude(double latitude) {
+        this.latitude = latitude;
+    }
+
+    public void setLongitude(double longitude) {
+        this.longitude = longitude;
     }
 }
