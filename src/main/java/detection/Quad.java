@@ -28,34 +28,35 @@ public class Quad implements Serializable {
     final static Logger logger = Logger.getLogger(Quad.class);
 
     /** Кут діагоналі квадрата в напрямку якого рухаємо координату щоб знайти центр квадрата та правий нижній кут */
-    private static final int QUAD_DIAGONAL_BEARING_0 = 0;
-    private static final int QUAD_DIAGONAL_BEARING_45 = 45;
-    private static final int QUAD_DIAGONAL_BEARING_90 = 90;
-    private static final int QUAD_DIAGONAL_BEARING_135 = 135;
-    private static final int QUAD_DIAGONAL_BEARING_180 = 180;
+    protected static final int QUAD_DIAGONAL_BEARING_0 = 0;
+    protected static final int QUAD_DIAGONAL_BEARING_45 = 45;
+    protected static final int QUAD_DIAGONAL_BEARING_90 = 90;
+    protected static final int QUAD_DIAGONAL_BEARING_135 = 135;
+    protected static final int QUAD_DIAGONAL_BEARING_180 = 180;
+    protected static final int QUAD_DIAGONAL_BEARING_270 = 270;
     public static final int QUAD_SIDE = 16;
     public static final double QUAD_DIAGONAL = Math.sqrt(QUAD_SIDE * QUAD_SIDE);
     @Id
-    private ObjectId id;
+    protected ObjectId id;
 
     /** Quad id calculated by recursively dividing the map in 4 sub squares.*/
-    private long qId;
+    protected long qId;
 
     /** Length of a side of the quad.*/
-    private int qSide;
+    protected int qSide;
 
-    private Location topleft, bottomright;
+    protected Location topleft, bottomright;
 
     /**
      * Hashtable of the inferred topics in the quad.
      * String - topic, Integer - number of URLs having this topic. */
-    private Hashtable<String, Integer> stats;
+    protected Hashtable<String, Integer> stats;
 
     /** Hash for the center of the quad. */
-    private String geoHash;
+    protected String geoHash;
 
     /** URLs inside this quad. */
-    private List<String> urls = new LinkedList<>();
+    protected List<String> urls = new LinkedList<>();
 
     public Quad(){}
 
@@ -70,6 +71,7 @@ public class Quad implements Serializable {
         this.urls = urls;
     }
 
+    /** TODO: THIS IS NOT USED MADATUFKA */
     public Quad(Location topleft, Location bottomright){
         this.topleft = topleft;
         this.bottomright = bottomright;

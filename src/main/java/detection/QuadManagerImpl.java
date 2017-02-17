@@ -4,6 +4,7 @@ import ch.hsr.geohash.GeoHash;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import org.apache.commons.collections.map.MultiValueMap;
 import org.apache.log4j.Logger;
 import org.bson.Document;
 import org.mongodb.morphia.Datastore;
@@ -14,10 +15,9 @@ import util.HtmlUtil;
 import util.MongoUtil;
 import util.sequential.LDATopicDetector;
 
-import java.util.Hashtable;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.MultivaluedMap;
+import java.util.*;
 
 /**
  * Created by Dmytro on 06/02/2017.
@@ -34,6 +34,14 @@ public class QuadManagerImpl implements IQuadManager{
 
     private static final int MINIMAL_SIDE = 16;
 
+    public static volatile long topLevelQuadCount = 1L;
+
+    //TODO: TEMP delete after debug
+    public static List<Location> topLevelQuadUpperLeftCorners = new ArrayList<>();
+    public static HashMap<String, TopLevelQuad> tempTopLevelQuadStorage = new HashMap<>();
+    public static MultivaluedMap<String, TopLevelQuad> tempMultivaluedQuadStorage = new MultivaluedHashMap<>();
+    //TODO:
+
     /** */
     private MongoClient mongoClient;
 
@@ -47,7 +55,7 @@ public class QuadManagerImpl implements IQuadManager{
 
     private Morphia morphia;
 
-    protected Datastore datastore;
+    private Datastore quadDataStore;
 
     private int countUrlNotMatchingQuads = 0;
 
@@ -56,7 +64,7 @@ public class QuadManagerImpl implements IQuadManager{
         mongoDatabase = MongoUtil.getDatabase(DATABASE_NAME);
         morphia = new Morphia();
         morphia.map(Quad.class);
-        datastore = morphia.createDatastore(mongoClient, DATABASE_NAME);
+        quadDataStore = morphia.createDatastore(mongoClient, DATABASE_NAME);
         logger.info("QuadManagerImpl initialized");
     }
 
@@ -71,45 +79,172 @@ public class QuadManagerImpl implements IQuadManager{
         int quadSide = 2048; //початковий розмір квадратіка
         //поки не кінець світу
         //створили the Daddy
-        Quad newQuad = new Quad(topleft, quadSide);
-        newQuad.setId(1L);
-        datastore.save(newQuad);
-        //4 рази рекурсивно зайшли в дітей
-        recursivePartitionMapIntoQuads(topleft, quadSide, 1); //вперше заходимо в дітей
+        TopLevelQuad firstQuad = new TopLevelQuad(topleft, quadSide);
+        /**
+         * using the static variable topLevelQuadCount below to keep track of how many quads have already been named
+         */
+        firstQuad.setId(QuadManagerImpl.topLevelQuadCount);
+        quadDataStore.save(firstQuad);
+        recursivePartitionQuadIntoChildren(topleft, quadSide, QuadManagerImpl.topLevelQuadCount); //рекурсивно обробляємо дітей
+        /**
+         * new quad was created along with all it's kids (parent ID which relies on this variable won't be used anymore)
+         */
+        QuadManagerImpl.topLevelQuadCount++;
+
+        recursiveTraverseTopLevelQuads(firstQuad);
+//        //начінаємо від того квада ходити в усі чотири сторони по часовій стрілці починаючи від правого
+//        Location nextQuadLocation = firstQuad.calcTopRight(); //go to the right quad
+//
+//        //TODO: перевірка чи такий вже існує
+//        //
+//        TopLevelQuad topLevelQuad = new TopLevelQuad(nextQuadLocation, quadSide);
+//        firstQuad.setId(QuadManagerImpl.topLevelQuadCount);
+//        recursivePartitionQuadIntoChildren(nextQuadLocation, quadSide, QuadManagerImpl.topLevelQuadCount);
+//        QuadManagerImpl.topLevelQuadCount++;
+//        //TODO: save()
+//        //
 
         //в цій верхній функції спробувати пройтися по всіх сусідах, і для кожного сусіда заходити в дітей.
         logger.info("partitionMapIntoQuads into quads finished.");
     }
 
-    private void recursivePartitionMapIntoQuads(Location topleft,
-                                                int fatherQuadSide,
-                                                long fatherQuadId) {
-        if (fatherQuadSide == Quad.QUAD_SIDE)
+    /**
+     * @param pivot : pivot quad around which we'll traverse up, right, down and left
+     */
+    //TODO: у фінальній версії це не статік і прайват
+    public static void recursiveTraverseTopLevelQuads(TopLevelQuad pivot) {
+        //TODO: зробити нормальну перевірку на кінець світу
+        if (pivot.getTopleft().getLatitude() > 50 || pivot.getTopleft().getLatitude() < -50 || pivot.getTopleft().getLongitude() > 140 || pivot.getTopleft().getLongitude() < -140 )
+            return;
+
+        //STEP 1 - начінаємо від даного квада ходити в усі чотири сторони по часовій стрілці починаючи від правого
+        Location nextQuadLocation = pivot.calcTopRight(); //go to the right quad from pivot
+        TopLevelQuad newQuad;
+
+
+        //TODO: перевірка чи такий вже існує
+        newQuad = new TopLevelQuad(nextQuadLocation, pivot.getqSide());
+        if (!topLevelQuadExists(newQuad)) {
+            newQuad.setId(QuadManagerImpl.topLevelQuadCount);
+            QuadManagerImpl.topLevelQuadCount++;
+            tempMultivaluedQuadStorage.add(newQuad.getGeoHash(), newQuad);
+            recursiveTraverseTopLevelQuads(newQuad);
+        } else {
+            TopLevelQuad existing = getExistingTopLevelQuad(newQuad);
+            existing.leftNeighbor = pivot; //we came from the left side
+        }
+
+        //STEP 2 - йдемо ВНИЗ
+        nextQuadLocation = pivot.calcBottomLeft();
+        newQuad = new TopLevelQuad(nextQuadLocation, pivot.getqSide());
+        if (!topLevelQuadExists(newQuad)) {
+            newQuad.setId(QuadManagerImpl.topLevelQuadCount);
+            QuadManagerImpl.topLevelQuadCount++;
+            tempMultivaluedQuadStorage.add(newQuad.getGeoHash(), newQuad);
+            recursiveTraverseTopLevelQuads(newQuad);
+        } else {
+            TopLevelQuad existing = getExistingTopLevelQuad(newQuad);
+            existing.upperNeighbor = pivot; //we came from the upper side
+        }
+
+        //STEP 3 - йдемо ВЛІВО
+        nextQuadLocation = pivot.calcLeftNeighborStartingCoord();
+        newQuad = new TopLevelQuad(nextQuadLocation, pivot.getqSide());
+        if (!topLevelQuadExists(newQuad)) {
+            newQuad.setId(QuadManagerImpl.topLevelQuadCount);
+            QuadManagerImpl.topLevelQuadCount++;
+            tempMultivaluedQuadStorage.add(newQuad.getGeoHash(), newQuad);
+            recursiveTraverseTopLevelQuads(newQuad);
+        } else {
+            TopLevelQuad existing = getExistingTopLevelQuad(newQuad);
+            existing.rightNeighbor = pivot; //we came from the right side
+        }
+
+        //STEP 4 - йдемо ВГОРУ
+        nextQuadLocation = pivot.calcUpperNeighborStartingCoord();
+        newQuad = new TopLevelQuad(nextQuadLocation, pivot.getqSide());
+        if (!topLevelQuadExists(newQuad)) {
+            newQuad.setId(QuadManagerImpl.topLevelQuadCount);
+            QuadManagerImpl.topLevelQuadCount++;
+            tempMultivaluedQuadStorage.add(newQuad.getGeoHash(), newQuad);
+            recursiveTraverseTopLevelQuads(newQuad);
+        } else {
+            TopLevelQuad existing = getExistingTopLevelQuad(newQuad);
+            existing.bottomNeighbor = pivot; //we came from the bottom side
+        }
+
+    }
+
+    private static TopLevelQuad getExistingTopLevelQuad(TopLevelQuad newQuad) {
+        List<TopLevelQuad> quadsPerKey = tempMultivaluedQuadStorage.get(newQuad.getGeoHash());
+
+        for (TopLevelQuad quad : quadsPerKey) {
+            Location topleft = quad.getTopleft();
+            Location bottomright = quad.getBottomright();
+            // longitude - x
+            // latitude - y
+            if (newQuad.getCenter().getLatitude() <= topleft.getLatitude() &&
+                    newQuad.getCenter().getLatitude() >= bottomright.getLatitude() &&
+                    newQuad.getCenter().getLongitude() >= topleft.getLongitude() &&
+                    newQuad.getCenter().getLongitude() <= bottomright.getLongitude()) {
+                return quad;
+            }
+        }
+        return null;
+    }
+
+    private static boolean topLevelQuadExists(TopLevelQuad newQuad) {
+        List<TopLevelQuad> quadsPerKey = tempMultivaluedQuadStorage.get(newQuad.getGeoHash());
+
+        if (quadsPerKey == null) //it's null, not empty when it wasn't put in the map yet
+            return false;
+        else {
+            for(TopLevelQuad quad : quadsPerKey) {
+                Location topleft = quad.getTopleft();
+                Location bottomright = quad.getBottomright();
+                // longitude - x
+                // latitude - y
+                if (newQuad.getCenter().getLatitude() <= topleft.getLatitude() &&
+                        newQuad.getCenter().getLatitude() >= bottomright.getLatitude() &&
+                        newQuad.getCenter().getLongitude() >= topleft.getLongitude() &&
+                        newQuad.getCenter().getLongitude() <= bottomright.getLongitude()){
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    //TODO: private
+    private void recursivePartitionQuadIntoChildren(Location topleft,
+                                                    int parentQuadSide,
+                                                    long parentQuadId) {
+        if (parentQuadSide == Quad.QUAD_SIDE)
             return;
 
         //creating subquad 0
-        Quad newQuad0 = new Quad(topleft, fatherQuadSide/2);
-        newQuad0.setId(fatherQuadId*10L+0); //shift father ID by 1 digit (розряд)
-        datastore.save(newQuad0);
-        recursivePartitionMapIntoQuads(newQuad0.getTopleft(), newQuad0.getqSide(), newQuad0.getId());
+        Quad newQuad0 = new Quad(topleft, parentQuadSide/2);
+        newQuad0.setId(parentQuadId*10L+0); //shift father ID by 1 digit (розряд)
+        quadDataStore.save(newQuad0);
+        recursivePartitionQuadIntoChildren(newQuad0.getTopleft(), newQuad0.getqSide(), newQuad0.getId());
 
         //creating subquad 1
-        Quad newQuad1 = new Quad(newQuad0.calcTopRight(), fatherQuadSide/2);
-        newQuad1.setId(fatherQuadId*10L+1);
-        datastore.save(newQuad1);
-        recursivePartitionMapIntoQuads(newQuad1.getTopleft(), newQuad1.getqSide(), newQuad1.getId());
+        Quad newQuad1 = new Quad(newQuad0.calcTopRight(), parentQuadSide/2);
+        newQuad1.setId(parentQuadId*10L+1);
+        quadDataStore.save(newQuad1);
+        recursivePartitionQuadIntoChildren(newQuad1.getTopleft(), newQuad1.getqSide(), newQuad1.getId());
 
         //creating subquad 2
-        Quad newQuad2 = new Quad(newQuad0.calcBottomLeft(), fatherQuadSide/2);
-        newQuad2.setId(fatherQuadId*10L+2);
-        datastore.save(newQuad2);
-        recursivePartitionMapIntoQuads(newQuad2.getTopleft(), newQuad2.getqSide(), newQuad2.getId());
+        Quad newQuad2 = new Quad(newQuad0.calcBottomLeft(), parentQuadSide/2);
+        newQuad2.setId(parentQuadId*10L+2);
+        quadDataStore.save(newQuad2);
+        recursivePartitionQuadIntoChildren(newQuad2.getTopleft(), newQuad2.getqSide(), newQuad2.getId());
 
         //creating subquad 3
-        Quad newQuad3 = new Quad(newQuad0.getBottomright(), fatherQuadSide/2);
-        newQuad3.setId(fatherQuadId*10L+3);
-        datastore.save(newQuad3);
-        recursivePartitionMapIntoQuads(newQuad3.getTopleft(), newQuad3.getqSide(), newQuad3.getId());
+        Quad newQuad3 = new Quad(newQuad0.getBottomright(), parentQuadSide/2);
+        newQuad3.setId(parentQuadId*10L+3);
+        quadDataStore.save(newQuad3);
+        recursivePartitionQuadIntoChildren(newQuad3.getTopleft(), newQuad3.getqSide(), newQuad3.getId());
     }
 
 
@@ -127,8 +262,8 @@ public class QuadManagerImpl implements IQuadManager{
             return quadList.get(0);
          for(Quad q : quadList){
              Location topleft = q.getTopleft();
-             Location bottomright = q.getBottomright();
-             // longitude - x
+              Location bottomright = q.getBottomright();
+            // longitude - x
              // latitude - y
              if (urllocation.getLatitude() <= topleft.getLatitude() &&
                      urllocation.getLatitude() >= bottomright.getLatitude() &&
@@ -162,7 +297,7 @@ public class QuadManagerImpl implements IQuadManager{
                                 lon,
                                 GeolocationUtil.GEOHASH_PRECISION);
                 //retrieve quads containing the same geohash
-                Query<Quad> queryQuad = datastore
+                Query<Quad> queryQuad = quadDataStore
                         .createQuery(Quad.class)
                         .filter("geoHash ==", urlHash);
                 List<Quad> quadList = queryQuad.asList();
@@ -175,7 +310,7 @@ public class QuadManagerImpl implements IQuadManager{
                 if (q != null) {
                     String s = (String) d.get("urls");
                     q.addUrlsAll(s.split("\\|"));
-                    datastore.save(q);
+                    quadDataStore.save(q);
                 } else {
                     logger.info("No quads match geohash: " +
                             urlHash + " " +
@@ -213,7 +348,7 @@ public class QuadManagerImpl implements IQuadManager{
                                     topleft.getLatitude(),
                                     topleft.getLongitude(),
                                     GeolocationUtil.GEOHASH_PRECISION);
-        Query<Quad> queryQuad = datastore
+        Query<Quad> queryQuad = quadDataStore
                 .createQuery(Quad.class).filter("geoHash ==", geoHashTopLeft);
         //TODO: too many quads for a geoHash (~20) !! What should we do?
         Quad quadTopLeft = queryQuad.asList().get(0);
@@ -222,7 +357,7 @@ public class QuadManagerImpl implements IQuadManager{
             topQuadId /= 10;
             level--;
         }
-        queryQuad = datastore
+        queryQuad = quadDataStore
                 .createQuery(Quad.class).filter("qId ==", topQuadId);
         Quad topQuad = queryQuad.asList().get(0);
         System.out.println(topQuad);
@@ -256,13 +391,13 @@ public class QuadManagerImpl implements IQuadManager{
         }
         if( !table.isEmpty()) {
             quad.setStats(table);
-            datastore.save(quad);
+            quadDataStore.save(quad);
         }
     }
 
 
     private List<Quad> getQuadsInsideQuad(long quadId){
-        Query<Quad> q = datastore.createQuery(Quad.class);
+        Query<Quad> q = quadDataStore.createQuery(Quad.class);
         q.or(
                 q.criteria("qId").equal(quadId*10 + 0),
                 q.criteria("qId").equal(quadId*10 + 1),
@@ -288,7 +423,7 @@ public class QuadManagerImpl implements IQuadManager{
 
     @Override
     public void computeTopicStatsSmallestQuads(){
-        Query<Quad> queryQuad = datastore
+        Query<Quad> queryQuad = quadDataStore
                 .createQuery(Quad.class)
                 .filter("urls exists", true);
         List<Quad> quadList = queryQuad.asList();
@@ -302,7 +437,7 @@ public class QuadManagerImpl implements IQuadManager{
 //                logger.info("Number of urls:" + Integer.toString(urlSize) + " quad id: " + q.getId());
                 q.setStats(LDATopicDetector.getTopicStatsByUrls(q.getUrls(),
                                             HtmlUtil.PAGE_TYPE.URL_LOCATION));
-                datastore.save(q);
+                quadDataStore.save(q);
             }catch (Exception e){
                 logger.error("Unable to detect topics!");
                 logger.error(e.getMessage());
@@ -335,7 +470,7 @@ public class QuadManagerImpl implements IQuadManager{
                 topleft.getLatitude(),
                 topleft.getLongitude(),
                 GeolocationUtil.GEOHASH_PRECISION);
-        Query<Quad> queryQuad = datastore
+        Query<Quad> queryQuad = quadDataStore
                 .createQuery(Quad.class).filter("geoHash ==", geoHashTopLeft);
         Quad quadTopLeft = queryQuad.asList().get(0);
         long topQuadId = quadTopLeft.getId();
@@ -343,7 +478,7 @@ public class QuadManagerImpl implements IQuadManager{
             topQuadId /= 10;
             level--;
         }
-        queryQuad = datastore
+        queryQuad = quadDataStore
                 .createQuery(Quad.class).filter("qId ==", topQuadId);
         Quad topQuad = queryQuad.asList().get(0);
         System.out.println(topQuad);
