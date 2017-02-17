@@ -59,6 +59,17 @@ public class Quad implements Serializable {
 
     public Quad(){}
 
+    public Quad(long qId, int qSide, Location topleft, Location bottomright,
+                Hashtable<String, Integer> stats, String geoHash, List<String> urls) {
+        this.qId = qId;
+        this.qSide = qSide;
+        this.topleft = topleft;
+        this.bottomright = bottomright;
+        this.stats = stats;
+        this.geoHash = geoHash;
+        this.urls = urls;
+    }
+
     public Quad(Location topleft, Location bottomright){
         this.topleft = topleft;
         this.bottomright = bottomright;
