@@ -3,13 +3,13 @@
  */
 package util;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.LinkedList;
@@ -20,6 +20,7 @@ import java.util.regex.Pattern;
 public class HtmlUtil {
 
     private static final Logger logger = Logger.getLogger(HtmlUtil.class);
+    private static final int CONNECTION_TIMEOUT = 2000;  //2s
 
     public static enum PAGE_TYPE{
         TITLE,
@@ -70,7 +71,7 @@ public class HtmlUtil {
                     String html = HtmlUtil.getRawText(s);
                     //TODO: ensure we do not add empty lines!
                     htmlList.add(html);
-                }catch (Exception e){
+                } catch (Exception e){
                     logger.error("Unable to fetch url:" + s + "\n" +
                             e.getMessage());
                 }
@@ -79,18 +80,49 @@ public class HtmlUtil {
         return htmlList;
     }
 
+    private static void saveToFile(String html) throws IOException {
+        String hashTextName = Integer.toString(html.hashCode());
+        File file = new File("data/urls2/fetched_pages/" + hashTextName + ".txt");
+//        try {
+            file.createNewFile();
+            FileOutputStream fos = new FileOutputStream(file);
+            fos.write(html.getBytes());
+            fos.close();
+//        } catch(Exception e){
+//            logger.error("unable to create new file for " + e.getMessage());
+//            throw new IOException(e);
+//        }
+    }
+
     public static String getRawText(String urlToRead) throws Exception {
-        StringBuilder result = new StringBuilder();
-        URL url = new URL(urlToRead);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setRequestMethod("GET");
-        BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-        String line;
-        while ((line = rd.readLine()) != null) {
-            result.append(line);
+        try{ //try to get saved html from file
+            FileInputStream inputStream = new FileInputStream(
+                    "data/urls2/fetched_pages/" +
+                            Integer.toString(urlToRead.hashCode()) + ".txt");
+             return IOUtils.toString(inputStream);
+        }catch (Exception e){ //fetch url
+            StringBuilder result = new StringBuilder();
+            URL url = new URL(urlToRead);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setConnectTimeout(CONNECTION_TIMEOUT);
+            conn.setRequestMethod("GET");
+            BufferedReader rd = new BufferedReader(
+                                new InputStreamReader(conn.getInputStream()));
+            String line;
+            while ((line = rd.readLine()) != null) {
+                result.append(line);
+            }
+            rd.close();
+            String html = Jsoup.parse(result.toString()).text();
+            try {
+                saveToFile(html);
+            }catch (IOException ioe) {
+                logger.error("Unable to save html to file. " +
+                                              ioe.getMessage());
+            }
+            return html;
         }
-        rd.close();
-        return Jsoup.parse(result.toString()).text();
+
     }
 
     public static String getTitles(String s)throws Exception {
