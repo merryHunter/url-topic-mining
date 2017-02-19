@@ -8,6 +8,9 @@ import com.mongodb.client.MongoDatabase;
 import detection.Quad;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -35,7 +38,7 @@ public class HtmlUtil {
         URL_LOCATION
     }
 
-    private static int nValidUrls;
+    private static volatile int nValidUrls;
 
     public static String getUrlLocationTokenized(String url){
         Matcher m = Pattern.compile("([a-z]*)").matcher(url);
@@ -154,23 +157,34 @@ public class HtmlUtil {
     }
 
     public static List<String> getCleanedUrlsByMimeType(String urlsFromDB){
-        List<String> cleanedUrls = new LinkedList<>();
+        List<String> cleanedUrls = Collections.synchronizedList(new ArrayList<>());
         if(urlsFromDB != null) {
             String[] urls = urlsFromDB.split("\\|");
 
             for (String u : urls) {
                 try {
-                    URL url = new URL(u);
-                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                    connection.setRequestMethod("HEAD");
-                    connection.setConnectTimeout(CONNECTION_TIMEOUT);
-                    connection.connect();
-                    String contentType = connection.getContentType();
-                    if (contentType.equals("text/html") ||
-                            contentType.equals("text/plain")) {
-                        cleanedUrls.add(u);
-                        nValidUrls++;
-                    }
+                    Thread t = new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                URL url = new URL(u);
+                                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                                connection.setRequestMethod("HEAD");
+                                connection.setConnectTimeout(5000);
+                                connection.connect();
+                                String contentType = connection.getContentType();
+                                contentType = contentType.trim();
+                                if (contentType.contains("text/html") ||
+                                        contentType.contains("text/plain")) {
+                                    cleanedUrls.add(u);
+                                    nValidUrls++;
+                                }
+                            } catch (Exception e) {
+                            }
+                        }
+                    });
+                    t.start();
+                    t.join();
                 } catch (Exception e) {
                     logger.error("test:unable to fetch head " + e.getMessage());
                 }

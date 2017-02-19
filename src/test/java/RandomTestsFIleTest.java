@@ -1,15 +1,22 @@
+import org.asynchttpclient.AsyncHttpClient;
+import org.asynchttpclient.Response;
 import org.junit.Test;
 import org.junit.*;
 import util.HtmlUtil;
 
 import javax.ws.rs.core.MultivaluedHashMap;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
+import java.net.URL;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.junit.Assert.*;
-
+import static org.asynchttpclient.Dsl.*;
 /**
  * @author Dmytro on 06/02/2017.
  */
@@ -182,4 +189,96 @@ public class RandomTestsFIleTest {
         HtmlUtil.preprocessCleanUrlsInDatabase();
     }
 
+
+    @Test
+    public void onTestAsyncRequests() throws IOException, InterruptedException {
+        String[] urls = {"http://cstatic.weborama.fr/advertiser/426/43/238/319/wbrm_animation.html",
+                "http://cstatic.weborama.fr/iframe/external.html",
+                "http://cstatic.weborama.fr/advertiser/426/43/238/319/standard_300x250.html?scrrefstr=scr_23897040824banner1464470086420&scrdebug=0&scrwidth=300&scrheight=250&scrwebodomain=0&scrdevtype=mobile&vars=wuid%3D%26retargeting%3D%26&clicks=%5B%22http%3A%2F%2Fcnfm.ad.dotandad.com%2Fclick%3Fpar%3D21.88103.49513.190450.97933.noflash%257C%257Cm_ilgiornale_it_news_2016_05_28_e-morto-giorgio-albertazzi_1264768_%257Cm_ilgiornale_it_news_2016_05_28_e-morto-giorgio-albertazzi_1264768_..http%253A%252F%252Fm%25252eilgiornale%25252eit%252Fnews%252F2016%252F05%252F28%252Fe-morto-giorgio-albertazzi%252F1264768%252F.http%253A%252F%252Fm%25252efacebook%25252ecom%252F.360.1446..1.%3Blink%3Dhttp%253A%252F%252Fmediolanum.solution.weborama.fr%252Ffcgi-bin%252Fdispatch.fcgi%253Fa.A%253Dcl%2526a.si%253D426%2526a.te%253D701%2526a.aap%253D667%2526a.agi%253D75%2526g.lu%253D%22%5D",
+                "http://gluservices.s3.amazonaws.com/PushNotifications2.0/com.glu.deerhunt2-google/notifications.txt", "http://ds.ssw.live.com/UploadData.aspx", "http://iphone.ilmeteo.it/android-app.php?method=situationAndForecast&type=0&id=609&x=6f9f4ece6c4e0e9dbd6782c8acddbe1b&lang=ita&v=3.5", "http://lgemobilewidget.accu-weather.com/widget/lgemobilewidget/weather-data.asp?slat=46.1394781&slon=12.2176508&langid=8",
+                "http://ds.ssw.live.com/UploadData.aspx",
+                "http://appexneuprodweather.blob.core.windows.net/img/phone/default/tile/wide/27b.jpg",
+                "http://appexneuprodweather.blob.core.windows.net/img/phone/default/tile/medium/27b.jpg",
+                "http://appexneuprodweather.blob.core.windows.net/img/phone/default/tile/small/27b.jpg",
+                "http://ds.ssw.live.com/UploadData.aspx",
+                "http://appexneuprodweather.blob.core.windows.net/img/phone/default/tile/wide/27b.jpg",
+                "http://appexneuprodweather.blob.core.windows.net/img/phone/default/tile/medium/27b.jpg",
+                "http://appexneuprodweather.blob.core.windows.net/img/phone/default/tile/small/27b.jpg",
+                "http://ds.ssw.live.com/UploadData.aspx",
+                "http://iphone.ilmeteo.it/android-app.php?method=situationAndForecast&type=0&id=609&x=6f9f4ece6c4e0e9dbd6782c8acddbe1b&lang=ita&v=3.5",
+                "http://www.trenitalia.com/cms-file/common/js/themes/trenitalia_2014/001/list.json",
+                "http://www.trenitalia.com/cms-file/immagini/trenitalia2014/Homepage/Fascia_banner_mobile/299x130_hotel.jpg",
+                "http://www.trenitalia.com/cms-file/immagini/trenitalia2014/Homepage/Fascia_banner_mobile/299x130_infomobilita.jpg",
+                "http://www.trenitalia.com/cms-file/immagini/trenitalia2014/Homepage/Fascia_banner_mobile/299x130_stato-treno.jpg",
+                "http://www.trenitalia.com/cms-file/immagini/trenitalia2014/Homepage/Fascia_banner_mobile/299x130_tutte-le-offerte.jpg",
+                "http://www.trenitalia.com/cms-file/immagini/trenitalia2014/Homepage/Fascia_banner_2/440x170_dx_smartcard.jpg",
+                "http://www.trenitalia.com/cms-file/immagini/trenitalia2014/Homepage/Fascia_banner_2/440x170_nuova_Cartafreccia.jpg",
+                "http://www.trenitalia.com/cms-file/immagini/trenitalia2014/Homepage/Fascia_banner_1/299x171_elezioni-amministrative.jpg",
+                "http://www.trenitalia.com/cms-file/immagini/trenitalia2014/Homepage/Fascia_banner_1/299x171_bimbigratis_a.jpg",
+                "http://www.trenitalia.com/cms-file/immagini/trenitalia2014/Homepage/Fascia_banner_1/299x171_treniextraEmiliaRomagna.jpg",
+                "http://www.trenitalia.com/cms-file/immagini/trenitalia2014/Homepage/Flag-off.jpg",
+                "http://www.trenitalia.com/cms-file/immagini/trenitalia2014/Homepage/Immagini_mobile/banner_form_mobileOnly.jpg",
+                "http://www.trenitalia.com/cms-file/immagini/trenitalia2014/Homepage/Visual/1400x480/1400x480_sconto_biglietto_ZoomBioparco.jpg",
+                "http://www.trenitalia.com/cms-file/immagini/trenitalia2014/Homepage/Visual/1400x480/1400x480_ar_weekend_Napoli.jpg",
+                "http://www.trenitalia.com/cms-file/immagini/trenitalia2014/Homepage/Visual/1400x480/1400x480_leonardo_express.jpg",
+                "http://www.trenitalia.com/cms-file/immagini/trenitalia2014/Homepage/Visual/1400x480/1400x480_gioca_danticipo-4.jpg",
+                "http://www.trenitalia.com/cms-file/immagini/trenitalia2014/Homepage/pulsante_menu_FC.jpg",
+                "http://www.trenitalia.com/cms-file/common/css/themes/trenitalia_2014/001/i/china_flag.jpg",
+                "http://mesu.apple.com/assets/com_apple_MobileAsset_SafariCloudHistoryConfiguration/com_apple_MobileAsset_SafariCloudHistoryConfiguration.xml",
+                "http://dlcdnamax.asus.com/Rel/App/IME/theme/20151030/ime-20151030-it.json",
+                "http://dlcdnamax.asus.com/Rel/App/IME/theme/20151030/ime-20151030.json",
+                "http://dlcdnamax.asus.com/Rel/App/IME/index.json",
+                "http://api.accuweather.com/alerts/v1/2549407.json?apikey=a33466bfa5b24f9f82aa7cf62d482f67&details=true&language=it",
+                "http://api.accuweather.com/currentconditions/v1/2549407.json?apikey=a33466bfa5b24f9f82aa7cf62d482f67&language=it&details=true",
+                "http://api.accuweather.com/locations/v1/cities/geoposition/search.json?q=46.1096405",
+                "http://configuration.apple.com/configurations/pep/pipeline/pipeline3.html",
+                "http://configuration.apple.com/configurations/pep/pipeline/pipeline2.html",
+                "http://configuration.apple.com/configurations/pep/pipeline/pipeline1.html",
+                "http://configuration.apple.com/configurations/pep/pipeline/pipeline0.html",
+                "http://api-wp.geniale.com/v1/ita/flyers.json?key=249cc184-d73c-11e2-91f9-005056af0765&conditions=is_active:1",
+                "is_visible:1",
+                "is_highlight:1",
+                "distance%20<=:30&sort=publish_at&direction=DESC&ll=46.11",
+                "http://iphone.ilmeteo.it/android-app.php?method=situationAndForecast&type=0&id=609&x=6f9f4ece6c4e0e9dbd6782c8acddbe1b&lang=ita&v=3.5",
+                "http://www.snai.it/mobilepage/richiestadeposito.php?carta=6031980010126789&token=94490e8a14b5b869a9529a20f1583644&pvend_sport=15215&tipo=sportGAME360&device=iphone&back_url=http://native_back",
+                "http://www.rai.it/dl/portale/html/palinsesti/static/palinsestoOraInOnda.html?output=json&id=636000763494965056"
+        };
+       /* try(AsyncHttpClient asyncHttpClient = asyncHttpClient()) {
+            for(String u: urls) {
+                asyncHttpClient
+                        .prepareGet(u)
+                        .execute()
+                        .toCompletableFuture()
+                        .thenApply(Response::getContentType)
+                        .thenAccept(System.out::println)
+                        .join();
+            }
+        }*/
+        for (String u : urls) {
+            Thread t = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        URL url = new URL(u);
+                        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                        connection.setRequestMethod("HEAD");
+                        connection.setConnectTimeout(5000);
+                        connection.connect();
+                        String contentType = connection.getContentType();
+                        contentType = contentType.trim();
+                        if (contentType.contains("text/html") ||
+                                contentType.contains("text/plain")) {
+                            System.out.println("YES");
+                        }
+                        else{
+                            System.out.println(contentType);}
+                    } catch (Exception e) {
+                    }
+                }
+            });
+            t.start();
+            t.join();
+        }
+
+    }
 }
