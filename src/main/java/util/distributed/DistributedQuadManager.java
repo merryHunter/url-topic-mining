@@ -9,23 +9,17 @@ import detection.Location;
 import detection.Quad;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.MapFunction;
-import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.sql.*;
 import org.bson.Document;
-import scala.Function1;
-import scala.Tuple2;
-import scala.util.parsing.json.JSONObject;
 import util.HtmlUtil;
 import util.sequential.LDATopicDetector;
 
 import java.util.Hashtable;
 import java.util.List;
-import java.util.Map;
 
 public class DistributedQuadManager {
 
@@ -36,6 +30,8 @@ public class DistributedQuadManager {
     private static SparkSession sparkSession;
 
     private static JavaSparkContext jsc;
+
+    private static JavaRDD<Row> smallestQuads;
 
     /**
      *
@@ -51,6 +47,7 @@ public class DistributedQuadManager {
 //            }
 
             //TODO: select quads inside given area
+//            computeAllTopics();
 
             //TODO: aggregate stats by mongodb/spark
 
@@ -90,15 +87,17 @@ public class DistributedQuadManager {
         logger.info("computeTopicStatsSmallestQuads started");
         try {
             dsQuad.createOrReplaceTempView("smallestQuads");
-            Dataset<Row> smallestQuads = sparkSession.sql(
+            Dataset<Row> smallestQuadsDS = sparkSession.sql(
                     "SELECT * from smallestQuads WHERE urls IS NOT NULL");
-            Dataset<Row> computedDS = testDataset(smallestQuads);
-//            JavaRDD<Row> computedDS = testRdd(smallestQuads);
-            computedDS.collect(); // replace with reduce later ?!
-//            computedDS.(5);
-            System.out.println("test");
+            smallestQuadsDS.head(2);
+            smallestQuads = getRddWithTopics(smallestQuadsDS);
+
+//            smallestQuads.collect();
+//            smallestQuads.collect(); // replace with reduce later ?!
             //save to mongodb
-            MongoSpark.save(computedDS);
+//            MongoSpark.
+//            MongoSpark.save(smallestQuads); // TODO:convert RDD<Row> to RDD<Document>
+//            .option("collection", "allquads").mode("overwrite").save();
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("computeTopicStatsSmallestQuads error " + e.getMessage());
@@ -107,41 +106,63 @@ public class DistributedQuadManager {
         logger.info("computeTopicStatsSmallestQuads finished");
     }
 
-    private static Dataset<Row> testDataset(Dataset<Row> smallestQuads){
-        Dataset<Row> computedDS = smallestQuads.map(
-                new MapFunction<Row, Row>(){
+    private static void computeAllTopics() {
+        logger.info("computeAllTopics started");
+        try {
+            dsQuad.createOrReplaceTempView("quadsByLevel");
+            for (int i = 32; i < 2048; i *= 2 ) {
+                Dataset<Row> quadsDS = sparkSession.sql(
+                        "SELECT * from quadsByLevel WHERE qSide <= " + Integer.toString(i));
+                JavaRDD<Row> computed = getStatsByMapReduce(quadsDS);
+                computed.collect();
+
+
+            }
+            // if current quad side is the minimal one, so no quads inside this
+
+        }catch (Exception e){
+            logger.error("computeAllTopics error " + e.getMessage());
+        }
+        logger.info("computeAllTopics finished");
+    }
+
+
+    private static JavaRDD<Row> getRddWithTopics(Dataset<Row> smallestQuads){
+        JavaRDD<Row> computedDS = smallestQuads.toJavaRDD().map(
+                new Function<Row, Row>(){
                     @Override
                     public Row call(Row row) throws Exception {
                         List<String> urls =  row.getList(row.size() - 1);
-                        System.out.println(urls);
                         Hashtable<String, Integer> topicStats = LDATopicDetector
-                                .getTopicStatsByUrls(urls, HtmlUtil.PAGE_TYPE.URL_LOCATION);
-                        logger.info(topicStats);
-                        System.out.println(row.getLong(4));//qId
-                        System.out.println(row.getLong(1));//
-                        System.out.println(row.getInt(5));//qSide
-                        List<String> topleft = row.getList(3);
-                        Quad temp = new Quad();
-                        String json = new Gson().toJson(temp);
-//                        return Document.parse(json);
-                        return RowFactory.create(row, topicStats);
+                                .getTopicStatsByUrls(urls, HtmlUtil.PAGE_TYPE.BODY);
+                        String json = new Gson().toJson(topicStats);
+
+//                        Document doc = Document.parse(json);
+//                        doc.append("qId", row.getLong(4));// qId
+//                        doc.append("stats", topicStats);
+                        Row r =  RowFactory.create(row.getLong(4), topicStats); //4 поле - qId
+                        return r;
                     }
-                }, Encoders.kryo(Row.class));
+                });
+        computedDS.collect();
         return computedDS;
     }
 
-    private static JavaRDD<Document> testRdd(Dataset<Row> smallestQuads){
-        JavaRDD<Document> computedDS = smallestQuads.toJavaRDD().map(
-                new Function<Row, Document>(){
+    private static JavaRDD<Row> getStatsByMapReduce(Dataset<Row> smallestQuads){
+        JavaRDD<Row> computedDS = smallestQuads.toJavaRDD().map(
+                new Function<Row, Row>(){
                     @Override
-                    public Document call(Row row) throws Exception {
+                    public Row call(Row row) throws Exception {
                         List<String> urls =  row.getList(row.size() - 1);
                         Hashtable<String, Integer> topicStats = LDATopicDetector
-                                .getTopicStatsByUrls(urls, HtmlUtil.PAGE_TYPE.URL_LOCATION);
-//                    List<String> topleft = row.getList(3);
-//                    Quad temp = new Quad();
-                    String json = new Gson().toJson(urls);
-                        return Document.parse(json);
+                                .getTopicStatsByUrls(urls, HtmlUtil.PAGE_TYPE.BODY);
+                        String json = new Gson().toJson(topicStats);
+
+//                        Document doc = Document.parse(json);
+//                        doc.append("qId", row.getLong(3));// 3?
+//                        doc.append("stats", topicStats);
+                        Row r =  RowFactory.create(row.getLong(4), topicStats);
+                        return r;
                     }
                 });
         return computedDS;
