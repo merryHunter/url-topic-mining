@@ -350,7 +350,6 @@ public class QuadManagerImpl implements IQuadManager{
                                     GeolocationUtil.GEOHASH_PRECISION);
         Query<Quad> queryQuad = quadDataStore
                 .createQuery(Quad.class).filter("geoHash ==", geoHashTopLeft);
-        //TODO: too many quads for a geoHash (~20) !! What should we do?
         Quad quadTopLeft = queryQuad.asList().get(0);
         long topQuadId = quadTopLeft.getId();
         while(level > 3) {          // 2^3 == 8 == QUAD.QUAD_SIDE
@@ -387,7 +386,7 @@ public class QuadManagerImpl implements IQuadManager{
         Hashtable<String, Integer> table = new Hashtable<>();
         for(Quad q: quadsInsideCurrent) {
             if(q.getStats() != null)
-                table.putAll(q.getStats());
+                table.putAll(q.getStats());//TODO:check if it adds values of stats!!!
         }
         if( !table.isEmpty()) {
             quad.setStats(table);
@@ -497,7 +496,7 @@ public class QuadManagerImpl implements IQuadManager{
                 try {
                     result.put(q, LDATopicDetector
                             .getTopicStatsByUrls(urlsInsideQuad,
-                                    HtmlUtil.PAGE_TYPE.URL_LOCATION).keySet());
+                                    HtmlUtil.PAGE_TYPE.URL_LOCATION).keySet());//TODO: add weights
                 }catch (Exception e){
                     logger.error("Unable to detect topics!");
                     logger.error(e.getMessage());
