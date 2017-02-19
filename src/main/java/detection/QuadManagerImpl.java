@@ -3,8 +3,8 @@ package detection;
 import ch.hsr.geohash.GeoHash;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
-import org.apache.commons.collections.map.MultiValueMap;
 import org.apache.log4j.Logger;
 import org.bson.Document;
 import org.mongodb.morphia.Datastore;
@@ -219,7 +219,7 @@ public class QuadManagerImpl implements IQuadManager{
     private void recursivePartitionQuadIntoChildren(Location topleft,
                                                     int parentQuadSide,
                                                     long parentQuadId) {
-        if (parentQuadSide == Quad.QUAD_SIDE)
+        if (parentQuadSide == Quad.QUAD_SIDE_MIN)
             return;
 
         //creating subquad 0
@@ -286,51 +286,77 @@ public class QuadManagerImpl implements IQuadManager{
         URLs = mongoDatabase.getCollection(URL_COLLECTION);
         int nSameQuadGeohash = 0;
         int m = 0;
-        try {
-            for (Object o : URLs.find()) { // .batchSize(128)
-                Document d = (Document) o;
-                double lat = (double) d.get("lat");
-                double lon = (double) d.get("lon");
-                String urlHash = GeoHash
-                        .geoHashStringWithCharacterPrecision(
-                                lat,
-                                lon,
-                                GeolocationUtil.GEOHASH_PRECISION);
-                //retrieve quads containing the same geohash
-                Query<Quad> queryQuad = quadDataStore
-                        .createQuery(Quad.class)
-                        .filter("geoHash ==", urlHash);
-                List<Quad> quadList = queryQuad.asList();
-                nSameQuadGeohash += quadList.size();
-                if(quadList.size() > m){
-                    m = quadList.size();
+        MongoCollection<Document> col = mongoDatabase.getCollection("output");
+//        try {
+//            for (Object o : URLs.find()) { // .batchSize(128)
+            try (MongoCursor<Document> cur = col.find().iterator()) {
+                while (cur.hasNext()) {
+                    Document d = cur.next();
+                    logger.info(count);
+//                Document d = (Document) o;
+                    // check if there is at least one good urls,
+                    // then try to put it into quads
+                    List<String> cleanedUrls = HtmlUtil.getCleanedUrlsByMimeType(
+                            (String) d.get("urls"));
+                    if (cleanedUrls.size() > 0) {
+                        double lat = (double) d.get("lat");
+                        double lon = (double) d.get("lon");
+                        String urlHash = GeoHash
+                                .geoHashStringWithCharacterPrecision(
+                                        lat,
+                                        lon,
+                                        GeolocationUtil.GEOHASH_PRECISION);
+                        //retrieve quads containing the same geohash
+                        try {
+                            Query<Quad> queryQuad = quadDataStore
+                                    .createQuery(Quad.class)
+                                    .filter("geoHash ==", urlHash);
+                            List<Quad> quadList = queryQuad.asList();
+                            nSameQuadGeohash += quadList.size();
+                            if (quadList.size() > m) {
+                                m = quadList.size();
+                            }
+//                    logger.info("Same geoHash retrieved:" + Integer.toString(quadList.size()));
+                            Quad q = selectQuadByUrlLocation(quadList, new Location(lat, lon));
+                            if (q != null) {
+                                q.setUrls(cleanedUrls);
+                                quadDataStore.save(q);
+                            } else {
+                                logger.info("No quads match geohash: " +
+                                        urlHash + " " +
+                                        Double.toString(lat) + " " +
+                                        Double.toString(lon));
+                                countUrlNotMatchingQuads++;
+                            }
+                        } catch (Exception e) {
+                            logger.error("mongodb could not save "
+                                    + e.getMessage());
+                        }
+                    }
+                    count++;
+                    if (count % 100 == 0) {
+                        logger.info("Processed " + Integer.toString(count) + " urls." +
+                                "Avg number of same quad geohash: " +
+                                Integer.toString(nSameQuadGeohash / count));
+                        logger.info("Total number of valid urls: " +
+                                Integer.toString(HtmlUtil.getnValidUrls()));
+                        if (count == 1000) {
+                            break;
+                        }
+                    }
                 }
-                logger.info("Same geoHash retrieved:" + Integer.toString(quadList.size()));
-                Quad q = selectQuadByUrlLocation(quadList, new Location(lat, lon));
-                if (q != null) {
-                    String s = (String) d.get("urls");
-                    q.addUrlsAll(s.split("\\|"));
-                    quadDataStore.save(q);
-                } else {
-                    logger.info("No quads match geohash: " +
-                            urlHash + " " +
-                            Double.toString(lat) + " " +
-                            Double.toString(lon));
-                    countUrlNotMatchingQuads++;
-                }
-                count++;
-                if (count % 1000 == 0) {
-                    logger.info("Processed " + Integer.toString(count) + " urls." +
-                            "Avg number of same quad geohash: " + Integer.toString(nSameQuadGeohash / count));
-                }
+                logger.info("Number of urls location without match quads: "
+                        + Float.toString(countUrlNotMatchingQuads));
+
+                logger.info("partitionUrls finished");
+                logger.info(m);
             }
-            logger.info("Number of urls location without match quads: "
-                    + Float.toString(countUrlNotMatchingQuads));
-            logger.info("partitionUrls finished");
-            logger.info(m);
-        }catch (Exception e){
+//        }
+        catch (Exception e){
             logger.error(e.getMessage());
             logger.error("partitionUrls interrupted by mongodb error!");
+        } finally {
+                mongoClient.close();
         }
     }
 
@@ -340,7 +366,7 @@ public class QuadManagerImpl implements IQuadManager{
     public Hashtable<Long, String> getTopics(Location topleft, double distanceToBottomRight, int S) {
         int qSide = GeolocationUtil.getQuadSideClosestToGivenStep(S);
         int level = GeolocationUtil.getLevel(qSide);
-        if (qSide < Quad.QUAD_SIDE){
+        if (qSide < Quad.QUAD_SIDE_MIN){
             //TODO:
             return null;
         }
@@ -352,7 +378,7 @@ public class QuadManagerImpl implements IQuadManager{
                 .createQuery(Quad.class).filter("geoHash ==", geoHashTopLeft);
         Quad quadTopLeft = queryQuad.asList().get(0);
         long topQuadId = quadTopLeft.getId();
-        while(level > 3) {          // 2^3 == 8 == QUAD.QUAD_SIDE
+        while(level > 3) {          // 2^3 == 8 == QUAD.QUAD_SIDE_MIN
             topQuadId /= 10;
             level--;
         }
@@ -375,7 +401,7 @@ public class QuadManagerImpl implements IQuadManager{
     //TODO: check if quad already contains computed stats before computing!!!
     private void calculateStatsForQuad(Quad quad, int qSide) {
         // if current quad side is the minimal one, so no quads inside this
-        if (quad.getqSide() == Quad.QUAD_SIDE)
+        if (quad.getqSide() == Quad.QUAD_SIDE_MIN)
             return;
         //get quads inside current
         List<Quad> quadsInsideCurrent = getQuadsInsideQuad(quad.getId());
@@ -461,7 +487,7 @@ public class QuadManagerImpl implements IQuadManager{
             Location topleft, double distanceToBottomRight, int S){
         int qSide = GeolocationUtil.getQuadSideClosestToGivenStep(S);
         int level = GeolocationUtil.getLevel(qSide);
-        if (qSide < Quad.QUAD_SIDE){
+        if (qSide < Quad.QUAD_SIDE_MIN){
             //TODO:
             return null;
         }
@@ -473,7 +499,7 @@ public class QuadManagerImpl implements IQuadManager{
                 .createQuery(Quad.class).filter("geoHash ==", geoHashTopLeft);
         Quad quadTopLeft = queryQuad.asList().get(0);
         long topQuadId = quadTopLeft.getId();
-        while(level > 3) {          // 2^3 == 8 == QUAD.QUAD_SIDE
+        while(level > 3) {          // 2^3 == 8 == QUAD.QUAD_SIDE_MIN
             topQuadId /= 10;
             level--;
         }
@@ -510,7 +536,7 @@ public class QuadManagerImpl implements IQuadManager{
 
 
     private List<String> getAllUrlsInsideQuad(Quad quad) {
-        if (quad.getqSide() == Quad.QUAD_SIDE)
+        if (quad.getqSide() == Quad.QUAD_SIDE_MIN)
             return null;
         //get quads inside current
         List<Quad> quadsInsideCurrent = getQuadsInsideQuad(quad.getId());

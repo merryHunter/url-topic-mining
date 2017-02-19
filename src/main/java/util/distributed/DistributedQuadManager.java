@@ -9,17 +9,18 @@ import detection.Location;
 import detection.Quad;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function;
-import org.apache.spark.api.java.function.MapFunction;
+import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.sql.*;
-import org.bson.Document;
+import scala.Tuple2;
 import util.HtmlUtil;
 import util.sequential.LDATopicDetector;
 
-import java.util.Hashtable;
-import java.util.List;
+import java.util.*;
 
 public class DistributedQuadManager {
 
@@ -91,8 +92,7 @@ public class DistributedQuadManager {
                     "SELECT * from smallestQuads WHERE urls IS NOT NULL");
             smallestQuadsDS.head(2);
             smallestQuads = getRddWithTopics(smallestQuadsDS);
-
-//            smallestQuads.collect();
+            smallestQuads.collect();
 //            smallestQuads.collect(); // replace with reduce later ?!
             //save to mongodb
 //            MongoSpark.
@@ -110,15 +110,15 @@ public class DistributedQuadManager {
         logger.info("computeAllTopics started");
         try {
             dsQuad.createOrReplaceTempView("quadsByLevel");
-            for (int i = 32; i < 2048; i *= 2 ) {
-                Dataset<Row> quadsDS = sparkSession.sql(
-                        "SELECT * from quadsByLevel WHERE qSide <= " + Integer.toString(i));
-                JavaRDD<Row> computed = getStatsByMapReduce(quadsDS);
-                computed.collect();
+            for (int i = Quad.QUAD_SIDE_MIN; i < 2048; i *= 2 ) {
+                int j = i * 2;
+                Dataset<Row> quadsOnSameLevel = sparkSession.sql(
+                        "SELECT * from quadsByLevel WHERE qSide = " + Integer.toString(j));
+//                JavaRDD<Row> computed = getStatsByMapReduce(quadsOnSameLevel);
+//                computed.collect();
 
 
             }
-            // if current quad side is the minimal one, so no quads inside this
 
         }catch (Exception e){
             logger.error("computeAllTopics error " + e.getMessage());
@@ -144,27 +144,21 @@ public class DistributedQuadManager {
                         return r;
                     }
                 });
-        computedDS.collect();
         return computedDS;
     }
-
-    private static JavaRDD<Row> getStatsByMapReduce(Dataset<Row> smallestQuads){
-        JavaRDD<Row> computedDS = smallestQuads.toJavaRDD().map(
-                new Function<Row, Row>(){
+/*
+    private static JavaRDD<Tuple2<Integer,String>> getStatsByMapReduce(Dataset<Row> smallestQuadsInside){
+        JavaRDD<Tuple2<String, Integer>> rdd = smallestQuadsInside
+                .toJavaRDD().mapPartitions(new FlatMapFunction<Iterator<Row>, Tuple2<String, Integer>>() {
                     @Override
-                    public Row call(Row row) throws Exception {
-                        List<String> urls =  row.getList(row.size() - 1);
-                        Hashtable<String, Integer> topicStats = LDATopicDetector
-                                .getTopicStatsByUrls(urls, HtmlUtil.PAGE_TYPE.BODY);
-                        String json = new Gson().toJson(topicStats);
-
-//                        Document doc = Document.parse(json);
-//                        doc.append("qId", row.getLong(3));// 3?
-//                        doc.append("stats", topicStats);
-                        Row r =  RowFactory.create(row.getLong(4), topicStats);
-                        return r;
+                    public Iterator<Tuple2<String, Integer>> call(Iterator<Row> rowIterator) throws Exception {
+                        List<Tuple2<String, Integer>> l = new LinkedList<Tuple2<String, Integer>>();
+                        l.add(new Tuple2<>(rowIterator.next().get()));
+                        Collections.singletonList();
+                        return null;
                     }
                 });
-        return computedDS;
-    }
+
+        return rdd.reduce();
+    }*/
 }

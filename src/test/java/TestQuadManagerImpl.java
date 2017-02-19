@@ -34,8 +34,8 @@ public class TestQuadManagerImpl {
         QuadManagerImpl quadManager =  new QuadManagerImpl();
 //        quadManager.partitionMapIntoQuads(
 //                new Location(46.049945, 11.121257), new Location(0.0,0.0), 2);
-        quadManager.partitionMapIntoQuads(
-                new Location(47.185257, 8.206737), new Location(0.0,0.0), 2);
+//        quadManager.partitionMapIntoQuads(
+//                new Location(47.185257, 8.206737), new Location(0.0,0.0), 2);
 
         quadManager.partitionUrls();
     }

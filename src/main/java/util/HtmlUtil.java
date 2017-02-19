@@ -3,11 +3,17 @@
  */
 package util;
 
+import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
+import detection.Quad;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.mongodb.morphia.Datastore;
+import org.mongodb.morphia.Morphia;
+import org.mongodb.morphia.query.Query;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -20,13 +26,17 @@ import java.util.regex.Pattern;
 public class HtmlUtil {
 
     private static final Logger logger = Logger.getLogger(HtmlUtil.class);
-    private static final int CONNECTION_TIMEOUT = 2000;  //2s
+
+    private static final int CONNECTION_TIMEOUT = 5000;  //5s
 
     public static enum PAGE_TYPE{
         TITLE,
         BODY,
         URL_LOCATION
     }
+
+    private static int nValidUrls;
+
     public static String getUrlLocationTokenized(String url){
         Matcher m = Pattern.compile("([a-z]*)").matcher(url);
         List<String> words = new LinkedList<>();
@@ -44,6 +54,7 @@ public class HtmlUtil {
         }
         return words.toString();
     }
+
     public static List<String> getHtmlPages(List<String> urls, PAGE_TYPE page_type){
         List<String> htmlList = new LinkedList<>();
         if (page_type == PAGE_TYPE.URL_LOCATION){
@@ -140,5 +151,84 @@ public class HtmlUtil {
         Element link = doc.select("a").first();
 
         return doc.title();
+    }
+
+    public static List<String> getCleanedUrlsByMimeType(String urlsFromDB){
+        List<String> cleanedUrls = new LinkedList<>();
+        if(urlsFromDB != null) {
+            String[] urls = urlsFromDB.split("\\|");
+
+            for (String u : urls) {
+                try {
+                    URL url = new URL(u);
+                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                    connection.setRequestMethod("HEAD");
+                    connection.setConnectTimeout(CONNECTION_TIMEOUT);
+                    connection.connect();
+                    String contentType = connection.getContentType();
+                    if (contentType.equals("text/html") ||
+                            contentType.equals("text/plain")) {
+                        cleanedUrls.add(u);
+                        nValidUrls++;
+                    }
+                } catch (Exception e) {
+                    logger.error("test:unable to fetch head " + e.getMessage());
+                }
+            }
+        }
+        return cleanedUrls;
+    }
+
+    public static void preprocessCleanUrlsInDatabase(){
+        MongoClient mongoClient = MongoUtil.getOrCreateMongoClient();
+        MongoDatabase mongoDatabase = MongoUtil.getDatabase("morphia_test");
+        Morphia morphia = new Morphia();
+        morphia.map(Quad.class);
+        Datastore quadDataStore = morphia.createDatastore(mongoClient, "morphia_test");
+
+        Query<Quad> queryQuad = quadDataStore
+                .createQuery(Quad.class)
+                .filter("urls exists", true);
+        List<Quad> quadList = queryQuad.asList();
+        int size = quadList.size();
+        int nUrlsDeleted = 0;
+
+        for (int i = 0; i < size; i++) {
+            Quad q = quadList.get(i);
+            for(String u :  q.getUrls()) {
+                int nUrls = q.getUrls().size();
+                List<String> cleanedUrls = new LinkedList<>();
+                try {
+                    URL url = new URL(u);
+                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                    connection.setRequestMethod("HEAD");
+                    connection.setConnectTimeout(CONNECTION_TIMEOUT);
+                    connection.connect();
+                    String contentType = connection.getContentType();
+                    if ( contentType.equals("text/html") ||
+                            contentType.equals("text/plain")){
+                        cleanedUrls.add(u);
+                    }
+                }catch (Exception e){
+                    logger.error("test:unable to fetch head " + e.getMessage());
+                }
+
+                q.setUrls(cleanedUrls);
+                try {
+                    quadDataStore.save(q);
+                }catch (Exception e){logger.error("unable to save " + e.getMessage());}
+                nUrlsDeleted += nUrls - cleanedUrls.size();
+            }
+
+            if(i % 1000 == 0){
+                logger.info("Processed " + Integer.toString(i) + " quads.");
+            }
+        }
+        logger.info("Deleted urls:" + Integer.toString(nUrlsDeleted));
+
+    }
+
+    public static int getnValidUrls() {
+        return nValidUrls;
     }
 }

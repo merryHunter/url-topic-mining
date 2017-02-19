@@ -1,5 +1,6 @@
 import org.junit.Test;
 import org.junit.*;
+import util.HtmlUtil;
 
 import javax.ws.rs.core.MultivaluedHashMap;
 
@@ -174,4 +175,11 @@ public class RandomTestsFIleTest {
         }
         return result;
     }
+
+
+    @Test
+    public void onTestPreprocessCleanUrls(){
+        HtmlUtil.preprocessCleanUrlsInDatabase();
+    }
+
 }
