@@ -1,10 +1,20 @@
+import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
 import detection.Location;
 import detection.Quad;
 import detection.QuadManagerImpl;
 import detection.TopLevelQuad;
+import org.apache.log4j.Logger;
 import org.apache.spark.sql.execution.columnar.FLOAT;
 import org.junit.Test;
+import org.mongodb.morphia.Datastore;
+import org.mongodb.morphia.Morphia;
+import org.mongodb.morphia.query.Query;
+import util.MongoUtil;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 
@@ -14,6 +24,11 @@ import java.util.List;
 
 public class TestQuadManagerImpl {
 
+    static final Logger logger = Logger.getLogger(TestQuadManagerImpl.class);
+
+    private File f;
+    private FileOutputStream fop;
+    private Datastore quadDataStore;
     @Test
     public void onTestMapPartition(){
         QuadManagerImpl quadManager =  new QuadManagerImpl();
@@ -36,7 +51,7 @@ public class TestQuadManagerImpl {
     @Test
     public void testTopLevelTraverse() {
         int quadSide = 2048;
-        Location topLeft = new Location(2.834115, 13.796509);
+        Location topLeft = new Location(47.185257, 8.206737);
         TopLevelQuad firstQuad = new TopLevelQuad(topLeft, quadSide);
         /**
          * using the static variable topLevelQuadCount below to keep track of how many quads have already been named
@@ -100,6 +115,66 @@ public class TestQuadManagerImpl {
             }
         }
         return "default";
+    }
+
+
+    @Test
+    public void onTestSlammQuads() throws IOException {
+        MongoClient mongoClient = MongoUtil.getOrCreateMongoClient();
+        MongoDatabase mongoDatabase = MongoUtil.getDatabase("morphia_test");
+        Morphia morphia = new Morphia();
+        morphia.map(Quad.class);
+        quadDataStore = morphia.createDatastore(mongoClient, "morphia_test");
+        Quad quadTopLeft = getQuadById(1L);
+        f = new File("out.txt");
+        f.createNewFile();
+        fop = new FileOutputStream(f);
+        recursivePrintQuadForVisualisation(quadTopLeft, 0);
+    }
+
+    void recursivePrintQuadForVisualisation(Quad q, int deepness) throws IOException {
+        if (deepness > 4){
+            return;
+        }
+        long parentQuadId = q.getId();
+
+        StringBuilder str = new StringBuilder();
+        //54.15626787405963, -58.88163421912802 {quad id} <green>
+        //39.8338819223521, -42.15296783993988 {quad id 2} <default>
+        str.append(q.getTopleft().getLatitude() + ", " + q.getTopleft().getLongitude());
+        str.append(" {quad id: " + q.getId() + "} <"+ getColour(deepness)+"> \n");
+        str.append(q.calcTopRight().getLatitude() + ", " + q.calcTopRight().getLongitude());
+        str.append(" {quad id: " + q.getId() + "} <"+ getColour(deepness)+"> \n");
+        str.append(q.getBottomright().getLatitude() + ", " + q.getBottomright().getLongitude());
+        str.append(" {quad id: " + q.getId() + "} <"+ getColour(deepness)+"> \n");
+        str.append(q.calcBottomLeft().getLatitude() + ", " + q.calcBottomLeft().getLongitude());
+        str.append(" {quad id: " + q.getId() + "} <"+ getColour(deepness)+"> \n");
+
+//        System.out.println(str.toString());
+        long qId = q.getId();
+        while(qId > 100) qId /= 10;
+        if (qId == 12)
+            fop.write(str.toString().getBytes());
+
+        long childID = parentQuadId*10 + 0;
+        Quad child = getQuadById(childID);
+        recursivePrintQuadForVisualisation(child, deepness+1);
+        childID = parentQuadId*10 + 1;
+        child = getQuadById(childID);
+        recursivePrintQuadForVisualisation(child, deepness+1);
+        childID = parentQuadId*10 + 2;
+        child = getQuadById(childID);
+        recursivePrintQuadForVisualisation(child, deepness+1);
+        childID = parentQuadId*10 + 3;
+        child =getQuadById(childID);
+        recursivePrintQuadForVisualisation(child, deepness+1);
+
+    }
+
+    private Quad getQuadById(long childID) {
+        Query<Quad> queryQuad = quadDataStore
+                .createQuery(Quad.class).filter("qId ==", childID );
+        return queryQuad.asList().get(0);
     }
 
 }
