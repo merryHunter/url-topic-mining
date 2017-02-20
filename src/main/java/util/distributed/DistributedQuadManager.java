@@ -146,7 +146,7 @@ public class DistributedQuadManager {
                 });
         return computedDS;
     }
-/*
+/*/*
     private static JavaRDD<Tuple2<Integer,String>> getStatsByMapReduce(Dataset<Row> smallestQuadsInside){
         JavaRDD<Tuple2<String, Integer>> rdd = smallestQuadsInside
                 .toJavaRDD().mapPartitions(new FlatMapFunction<Iterator<Row>, Tuple2<String, Integer>>() {

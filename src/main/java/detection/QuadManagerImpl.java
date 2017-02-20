@@ -411,8 +411,9 @@ public class QuadManagerImpl implements IQuadManager{
         //calculate stats
         Hashtable<String, Integer> table = new Hashtable<>();
         for(Quad q: quadsInsideCurrent) {
-            if(q.getStats() != null)
-                table.putAll(q.getStats());//TODO:check if it adds values of stats!!!
+            if(q.getStats() != null) {
+                q.getStats().forEach((k,v) -> table.merge(k, v, (v1,v2) -> v1 + v2));
+            }
         }
         if( !table.isEmpty()) {
             quad.setStats(table);

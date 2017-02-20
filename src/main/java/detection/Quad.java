@@ -35,7 +35,7 @@ public class Quad implements Serializable {
     protected static final int QUAD_DIAGONAL_BEARING_180 = 180;
     protected static final int QUAD_DIAGONAL_BEARING_270 = 270;
     public static final int QUAD_SIDE_MIN = 16;
-    public static final int QUAD_SIDE_MAX = 2048;
+    public static final int QUAD_SIDE_MAX = 16;
     public static final double QUAD_DIAGONAL = Math.sqrt(QUAD_SIDE_MIN * QUAD_SIDE_MIN);
     @Id
     protected ObjectId id;

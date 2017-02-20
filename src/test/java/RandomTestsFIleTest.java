@@ -1,5 +1,3 @@
-import org.asynchttpclient.AsyncHttpClient;
-import org.asynchttpclient.Response;
 import org.junit.Test;
 import org.junit.*;
 import util.HtmlUtil;
@@ -14,9 +12,10 @@ import java.net.URL;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.junit.Assert.*;
-import static org.asynchttpclient.Dsl.*;
 /**
  * @author Dmytro on 06/02/2017.
  */
@@ -150,6 +149,53 @@ public class RandomTestsFIleTest {
         System.out.println(map1);
     }
 
+    @Test
+    public void onTestPutAllHashtable(){
+        Hashtable<String, Integer> table1 = new Hashtable<>();
+        Hashtable<String, Integer> table2 = new Hashtable<>();
+        table1.put("test", 1);
+        table1.put("test1", 11);
+        table1.put("lol", 100);
+        table2.put("test", 2);
+        table2.put("test1", 3);
+        table2.put("lol", 100);
+        table2.put("lol1", 100);
+        table1.putAll(table2);
+        System.out.println(table1);
+    }
+
+    @Test
+    public  void onTestMergeHashtables(){
+        Hashtable<String, Integer> table1 = new Hashtable<>();
+        Hashtable<String, Integer> table2 = new Hashtable<>();
+        Hashtable<String, Integer> t = new Hashtable<>();
+//        table1.put("test", 1);
+        table1.put("est1", 11);
+        table1.put("lol", 100);
+        table2.put("test", 2);
+        table2.put("test1", 3);
+        table2.put("lol", 100);
+        table2.put("lol1", 100);
+        t.putAll(table1);
+        t.putAll(table2);
+        Hashtable<String, Integer> table = new Hashtable<>();
+            Map<String, Integer> combinedMap = Stream.concat(
+                    table1.entrySet().stream(), table2.entrySet().stream())
+                    .collect(Collectors.groupingBy(Map.Entry::getKey,
+                                Collectors.summingInt(Map.Entry::getValue)));
+        table2.forEach((k,v) -> table1.merge(k, v, (v1,v2) -> v1 + v2));
+
+        System.out.println(table1);
+    }
+
+    private Hashtable<String, Integer> mergeHashTables(Hashtable<String, Integer> t1, Hashtable<String, Integer> t2){
+        Hashtable<String, Integer> table = new Hashtable<>();
+        for (Map.Entry<String,Integer> entry : t1.entrySet()) {
+//            entry.getKey() + " " + entry.getValue();
+        }
+        return null;
+    }
+
     private static <K, V extends Comparable<? super V>> List<Map.Entry<K, V>>
     findGreatest(Map<K, V> map, int n)
     {
@@ -255,14 +301,14 @@ public class RandomTestsFIleTest {
             }
         }*/
         for (String u : urls) {
-            Thread t = new Thread(new Runnable() {
-                @Override
-                public void run() {
+//            Thread t = new Thread(new Runnable() {
+//                @Override
+//                public void run() {
                     try {
                         URL url = new URL(u);
                         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                         connection.setRequestMethod("HEAD");
-                        connection.setConnectTimeout(5000);
+                        connection.setConnectTimeout(20000);
                         connection.connect();
                         String contentType = connection.getContentType();
                         contentType = contentType.trim();
@@ -274,10 +320,10 @@ public class RandomTestsFIleTest {
                             System.out.println(contentType);}
                     } catch (Exception e) {
                     }
-                }
-            });
-            t.start();
-            t.join();
+//                }
+//            });
+//            t.start();
+//            t.join();
         }
 
     }
