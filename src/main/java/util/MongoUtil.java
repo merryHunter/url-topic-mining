@@ -15,7 +15,7 @@ public class MongoUtil {
 
     private static final int PORT = 27017;
 
-    private static final String HOST= "localhost";
+    public static final String HOST= "169.254.208.12";
 
     private static MongoClient mongoClient = null;
 

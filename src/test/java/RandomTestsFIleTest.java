@@ -231,8 +231,8 @@ public class RandomTestsFIleTest {
 
 
     @Test
-    public void onTestPreprocessCleanUrls(){
-        HtmlUtil.preprocessCleanUrlsInDatabase();
+    public void onTestFetchAndSaveUrls(){
+        HtmlUtil.fetchAndSaveUrls();
     }
 
 

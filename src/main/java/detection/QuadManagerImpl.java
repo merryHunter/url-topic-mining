@@ -398,7 +398,7 @@ public class QuadManagerImpl implements IQuadManager{
         return null;
     }
 
-    
+
     private void calculateStatsForQuad(Quad quad, int qSide) {
         // if current quad side is the minimal one, so no quads inside this
         if (quad.getqSide() == Quad.QUAD_SIDE_MIN)

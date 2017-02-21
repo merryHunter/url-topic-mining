@@ -43,18 +43,16 @@ public class HtmlUtil {
     public static String getUrlLocationTokenized(String url){
         Matcher m = Pattern.compile("([a-z]*)").matcher(url);
         List<String> words = new LinkedList<>();
-        try {
-            while(m.find()) {
-                String temp = m.group(1).trim();
-                if (!temp.equals(""))
-                    words.add(temp);
-            }
-            //remove extension - may be "" and thus throw exception
-            words.remove(words.size() - 1);
-        }catch (Exception e){
-            logger.error("Unable to get tokenized topics from url: " + url);
-            return "";
+        while(m.find()) {
+            String temp = m.group(1).trim();
+            if (!temp.equals(""))
+                words.add(temp);
         }
+        //remove extension - may be "" and thus throw exception
+        if (words.size() > 1) {
+            words.remove(words.size() - 1);
+        } else return "";
+
         return words.toString();
     }
 
@@ -193,7 +191,7 @@ public class HtmlUtil {
         return cleanedUrls;
     }
 
-    public static void preprocessCleanUrlsInDatabase(){
+    public static void fetchAndSaveUrls(){
         MongoClient mongoClient = MongoUtil.getOrCreateMongoClient();
         MongoDatabase mongoDatabase = MongoUtil.getDatabase("morphia_test");
         Morphia morphia = new Morphia();
