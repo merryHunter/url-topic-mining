@@ -296,6 +296,7 @@ public class QuadManagerImpl implements IQuadManager{
 //                Document d = (Document) o;
                     // check if there is at least one good urls,
                     // then try to put it into quads
+                    //TODO: try to access saved locally urls, if no - then fetch
                     List<String> cleanedUrls = HtmlUtil.getCleanedUrlsByMimeType(
                             (String) d.get("urls"));
                     if (cleanedUrls.size() > 0) {
@@ -397,8 +398,7 @@ public class QuadManagerImpl implements IQuadManager{
         return null;
     }
 
-
-    //TODO: check if quad already contains computed stats before computing!!!
+    
     private void calculateStatsForQuad(Quad quad, int qSide) {
         // if current quad side is the minimal one, so no quads inside this
         if (quad.getqSide() == Quad.QUAD_SIDE_MIN)
@@ -461,8 +461,8 @@ public class QuadManagerImpl implements IQuadManager{
                 int urlSize = q.getUrls().size();
                 nUrls += urlSize;
 //                logger.info("Number of urls:" + Integer.toString(urlSize) + " quad id: " + q.getId());
-                q.setStats(LDATopicDetector.getTopicStatsByUrls(q.getUrls(),
-                                            HtmlUtil.PAGE_TYPE.URL_LOCATION));
+//                q.setStats(LDATopicDetector.getTopicStatsByUrls(q.getUrls(),
+//                                            HtmlUtil.PAGE_TYPE.URL_LOCATION));
                 quadDataStore.save(q);
             }catch (Exception e){
                 logger.error("Unable to detect topics!");
