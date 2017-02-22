@@ -2,15 +2,10 @@ import cc.mallet.pipe.*;
 import cc.mallet.pipe.iterator.ArrayIterator;
 import cc.mallet.topics.ParallelTopicModel;
 import cc.mallet.types.InstanceList;
-import detection.IQuadManager;
 import detection.Location;
 import detection.QuadManagerImpl;
-import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.sql.Dataset;
 import smile.data.SparseDataset;
 import util.HtmlUtil;
-import util.distributed.DistributedQuadManager;
 import util.sequential.CountVectorizer;
 import org.junit.Test;
 
@@ -25,7 +20,6 @@ import org.apache.spark.sql.SparkSession;
 import org.bson.Document;
 
 import com.mongodb.spark.MongoSpark;
-import com.mongodb.spark.config.ReadConfig;
 import com.mongodb.spark.rdd.api.java.JavaMongoRDD;
 
 /**

@@ -33,7 +33,7 @@ public class LDATopicDetector {
      *  @param page_type: fast processing depending on page titles,
      *              depending on page body or url location itself.
      */
-    public static HashMap<String, Integer> getTopicStatsByUrls(
+    public static Hashtable<String, Integer> getTopicStatsByUrls(
             List<String> urls, HtmlUtil.PAGE_TYPE page_type) throws Exception {
         logger.info("getTopicStatsByUrls started");
         // curl url's
@@ -71,21 +71,7 @@ public class LDATopicDetector {
         model.estimate();
 
         // compute stats
-        /*Hashtable<String, Integer> topicsStats = new Hashtable<>();
-        String topWords = model.displayTopWords(NUM_WORDS, true);
-        Matcher m = Pattern.compile("\\n(([a-z]*)\\t)").matcher(topWords);
-        Matcher counts = Pattern.compile("\\t(([0-9]*)\\n)").matcher(topWords);
-        try {
-            while (m.find() && counts.find()) {
-                topicsStats.put(m.group(1).trim(),
-                        Integer.parseInt(counts.group(1).trim()));
-            }
-        } catch (Exception e) {
-            logger.error(e.getMessage());
-        }*/
-//        logger.info(topicsStats);
-        logger.info("getTopicStatsByUrls finished");
-        HashMap<String, Integer> topicsStats = new HashMap<>();
+        Hashtable<String, Integer> topicsStats = new Hashtable<>();
         String topWords = model.displayTopWords(NUM_WORDS, true);
         Matcher m = Pattern.compile("\\n(([a-z]*)\\t)").matcher(topWords);
         Matcher counts = Pattern.compile("\\t(([0-9]*)\\n)").matcher(topWords);
@@ -97,6 +83,20 @@ public class LDATopicDetector {
         } catch (Exception e) {
             logger.error(e.getMessage());
         }
+//        logger.info(topicsStats);
+        logger.info("getTopicStatsByUrls finished");
+        /*HashMap<String, Integer> topicsStats = new HashMap<>();
+        String topWords = model.displayTopWords(NUM_WORDS, true);
+        Matcher m = Pattern.compile("\\n(([a-z]*)\\t)").matcher(topWords);
+        Matcher counts = Pattern.compile("\\t(([0-9]*)\\n)").matcher(topWords);
+        try {
+            while (m.find() && counts.find()) {
+                topicsStats.put(m.group(1).trim(),
+                        Integer.parseInt(counts.group(1).trim()));
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+        }*/
         return topicsStats;
     }
 

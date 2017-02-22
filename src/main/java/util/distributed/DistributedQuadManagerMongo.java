@@ -6,7 +6,6 @@ package util.distributed;
 import com.google.gson.Gson;
 import com.mongodb.spark.MongoSpark;
 import detection.Location;
-import detection.Quad;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -14,8 +13,6 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.*;
 import org.apache.spark.sql.*;
-import scala.Function5;
-import scala.Function6;
 import scala.Tuple2;
 import util.HtmlUtil;
 import util.MongoUtil;
@@ -23,9 +20,9 @@ import util.sequential.LDATopicDetector;
 
 import java.util.*;
 
-public class DistributedQuadManager {
+public class DistributedQuadManagerMongo {
 
-    static final Logger logger = Logger.getLogger(DistributedQuadManager.class);
+    static final Logger logger = Logger.getLogger(DistributedQuadManagerMongo.class);
 
     private static Dataset<Row> dsQuad;
 
@@ -41,7 +38,7 @@ public class DistributedQuadManager {
      */
     public static void main(String[] args) {
         try {
-            logger.info("DistributedQuadManager started!");
+            logger.info("DistributedQuadManagerMongo started!");
             jsc = createJavaSparkContext();
             logger.info("SPARK conf created successfully!");
 
@@ -50,7 +47,6 @@ public class DistributedQuadManager {
 //
             dsQuad = MongoSpark.load(jsc).toDF();
 
-  //read data fro
             logger.info("SPARK quads from mongodb retrieved successfully!");
 
 //            if (args[0].equals("true")){
@@ -145,7 +141,7 @@ public class DistributedQuadManager {
                     @Override
                     public Row call(Row row) throws Exception {
                         List<String> urls =  row.getList(row.size() - 1);
-                        HashMap<String, Integer> topicStats = LDATopicDetector
+                        Hashtable<String, Integer> topicStats = LDATopicDetector
                                 .getTopicStatsByUrls(urls, HtmlUtil.PAGE_TYPE.URL_LOCATION);
                         String json = new Gson().toJson(topicStats);
 
