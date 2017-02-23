@@ -144,6 +144,110 @@ public class Quad implements Serializable {
        ); //корінь суми квадратів катетів поділений на 2 - центр гіпотенузи
     }
 
+    public static long getUpperNeighborId(long pivotQuadId) {
+        int idLastDigit = (int) ((int) pivotQuadId%10L);
+        long newQuadId;
+        switch (idLastDigit) {
+            case (3): {
+                newQuadId =  (pivotQuadId / 10) * 10 + 1;  //change the last digit of id to 1
+                return newQuadId;
+            }
+            case (2): {
+                newQuadId =  (pivotQuadId / 10) * 10 + 0;  //change the last digit of id to 0
+                return newQuadId;
+            }
+            case (1): {
+                /** move the parent quad to the upper neighbor and then return child two of the one*/
+                newQuadId = getUpperNeighborId(pivotQuadId / 10) * 10 +3;
+                return newQuadId;
+            }
+            case (0): {
+                newQuadId = getUpperNeighborId(pivotQuadId / 10) * 10 +2;
+                return newQuadId;
+            }
+        }
+        return 0; //it's an error if it gets here
+    }
+
+    public static long getLeftNeighborId(long pivotQuadId) {
+        int idLastDigit = (int) ((int) pivotQuadId%10L);
+        long newQuadId;
+        switch (idLastDigit) {
+            //trivial cases when neighbor is in the same parent first
+            case (3): {
+                newQuadId =  (pivotQuadId / 10) * 10 + 2;  //change the last digit of id to 1
+                return newQuadId;
+            }
+            case (1): {
+                newQuadId =  (pivotQuadId / 10) * 10 + 0;  //change the last digit of id to 0
+                return newQuadId;
+            }
+            case (0): {
+                /** move the parent quad to the upper neighbor and then return child two of the one*/
+                newQuadId = getLeftNeighborId(pivotQuadId / 10) * 10 +1;
+                return newQuadId;
+            }
+            case (2): {
+                newQuadId = getLeftNeighborId(pivotQuadId / 10) * 10 +3;
+                return newQuadId;
+            }
+        }
+        return 0; //it's an error if it gets here
+    }
+
+
+    public static long getRightNeighborId(long pivotQuadId) {
+        int idLastDigit = (int) ((int) pivotQuadId%10L);
+        long newQuadId;
+        switch (idLastDigit) {
+            //trivial cases when neighbor is in the same parent first
+            case (0): {
+                newQuadId =  (pivotQuadId / 10) * 10 + 1;  //change the last digit of id to 1
+                return newQuadId;
+            }
+            case (2): {
+                newQuadId =  (pivotQuadId / 10) * 10 + 3;  //change the last digit of id to 0
+                return newQuadId;
+            }
+            case (1): {
+                /** move the parent quad to the upper neighbor and then return child two of the one*/
+                newQuadId = getRightNeighborId(pivotQuadId / 10) * 10 +0;
+                return newQuadId;
+            }
+            case (3): {
+                newQuadId = getRightNeighborId(pivotQuadId / 10) * 10 +2;
+                return newQuadId;
+            }
+        }
+        return 0; //it's an error if it gets here
+    }
+
+    public static long getLowerNeighborId(long pivotQuadId) {
+        int idLastDigit = (int) ((int) pivotQuadId%10L);
+        long newQuadId;
+        switch (idLastDigit) {
+            //trivial cases when neighbor is in the same parent first
+            case (0): {
+                newQuadId =  (pivotQuadId / 10) * 10 + 2;  //change the last digit of id to 1
+                return newQuadId;
+            }
+            case (1): {
+                newQuadId =  (pivotQuadId / 10) * 10 + 3;  //change the last digit of id to 0
+                return newQuadId;
+            }
+            case (2): {
+                /** move the parent quad to the upper neighbor and then return child two of the one*/
+                newQuadId = getLowerNeighborId(pivotQuadId / 10) * 10 +0;
+                return newQuadId;
+            }
+            case (3): {
+                newQuadId = getLowerNeighborId(pivotQuadId / 10) * 10 +1;
+                return newQuadId;
+            }
+        }
+        return 0; //it's an error if it gets here
+    }
+
     /**
      * Getter & setters
      */
