@@ -64,7 +64,7 @@ public class TestTopicDetections {
     @Test
     public void onTestGetTopics(){
         QuadManagerImpl quadManager = new QuadManagerImpl();
-        quadManager.getTopics(new Location(46.064322, 11.123587), 1.0d, 44);
+        quadManager.getTopics(new Location(46.064322, 11.123587), 1.0d, 36);
     }
 
     @Test
@@ -80,6 +80,7 @@ public class TestTopicDetections {
         QuadManagerImpl quadManager = new QuadManagerImpl();
         quadManager.getTopicsByRerun(new Location(46.064322, 11.123587), 1.0d, 44);
     }
+
     @Test
     public void onTestMalletTopicDetection() throws IOException {
 

@@ -92,18 +92,17 @@ public class HtmlUtil {
         return htmlList;
     }
 
-    private static void saveToFile(String html) throws IOException {
+    private static void saveToFile(String html) {
         String hashTextName = Integer.toString(html.hashCode());
         File file = new File("data/urls2/fetched_pages/" + hashTextName + ".txt");
-//        try {
+        try {
             file.createNewFile();
             FileOutputStream fos = new FileOutputStream(file);
             fos.write(html.getBytes());
             fos.close();
-//        } catch(Exception e){
-//            logger.error("unable to create new file for " + e.getMessage());
-//            throw new IOException(e);
-//        }
+        } catch(Exception e){
+            logger.error("unable to create new file for " + e.getMessage());
+        }
     }
 
     public static String getRawText(String urlToRead) throws Exception {
@@ -128,7 +127,7 @@ public class HtmlUtil {
             String html = Jsoup.parse(result.toString()).text();
             try {
                 saveToFile(html);
-            }catch (IOException ioe) {
+            }catch (Exception ioe) {
                 logger.error("Unable to save html to file. " +
                                               ioe.getMessage());
             }

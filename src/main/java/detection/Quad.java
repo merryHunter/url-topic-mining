@@ -192,11 +192,16 @@ public class Quad implements Serializable {
 
     @Override
     public String toString() {
-        return "Topleft: " + topleft.toString() + "\n" +
+        String out ="\n" + Long.toString(qId) + "\n" +
+                "Topleft: " + topleft.toString() + "\n" +
                 "Bottomright: " + bottomright.toString() + "\n" +
                 "Topright: " + this.calcTopRight().toString() + "\n" +
-                "Bottomleft: " + this.calcBottomLeft().toString() + "\n" +
-                "Center: " + this.getCenter();
+                "Bottomleft: " + this.calcBottomLeft().toString() + "\n";// +
+//                "Center: " + this.getCenter() + "\n";
+        if(stats != null && stats.size() > 0){
+            out += stats.toString() + "\n";
+        }
+        return out;
     }
 
     public void setId(ObjectId id) {

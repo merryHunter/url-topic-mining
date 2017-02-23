@@ -27,6 +27,8 @@ public class LDATopicDetector {
 
     private static final int NUM_WORDS = 5;
 
+
+
     /**
      *  Compute topic statistics for all urls in the list.
      *  @param urls: Each element contains a url.
@@ -77,8 +79,16 @@ public class LDATopicDetector {
         Matcher counts = Pattern.compile("\\t(([0-9]*)\\n)").matcher(topWords);
         try {
             while (m.find() && counts.find()) {
-                topicsStats.put(m.group(1).trim(),
-                        Integer.parseInt(counts.group(1).trim()));
+                //if the keyword is common for topics then saturate it's rating
+                String topic = m.group(1).trim();
+                int rating = Integer.parseInt(counts.group(1).trim());
+                if (topicsStats.containsKey(topic)){
+                    int old_r = topicsStats.get(topic);
+                    old_r *= 3;
+                    topicsStats.put(topic, old_r);
+                }else {
+                    topicsStats.put(topic, rating);
+                }
             }
         } catch (Exception e) {
             logger.error(e.getMessage());

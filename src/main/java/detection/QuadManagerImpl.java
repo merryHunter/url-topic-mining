@@ -379,17 +379,18 @@ public class QuadManagerImpl implements IQuadManager{
                 .createQuery(Quad.class).filter("geoHash ==", geoHashTopLeft);
         Quad quadTopLeft = queryQuad.asList().get(0);
         long topQuadId = quadTopLeft.getId();
-        while(level > 3) {          // 2^3 == 8 == QUAD.QUAD_SIDE_MIN
+        while(level > 4) {          // 2^4 == 16 == QUAD.QUAD_SIDE_MIN
             topQuadId /= 10;
             level--;
         }
         queryQuad = quadDataStore
                 .createQuery(Quad.class).filter("qId ==", topQuadId);
         Quad topQuad = queryQuad.asList().get(0);
-        System.out.println(topQuad);
+//        System.out.println(topQuad);
         //how many quads on a diagonal
         int nDiagonal = (int)(distanceToBottomRight / Quad.QUAD_DIAGONAL);
         List<Quad> quadsInsideGivenArea = getQuadsInsideGivenArea(topQuad, nDiagonal);
+//        logger.info(topQuad);
         for(Quad q: quadsInsideGivenArea) {
             calculateStatsForQuad(q, qSide);
             //TODO:on the current top level too many values - how to select only top-n for viewving?
@@ -401,14 +402,16 @@ public class QuadManagerImpl implements IQuadManager{
 
     private void calculateStatsForQuad(Quad quad, int qSide) {
         // if current quad side is the minimal one, so no quads inside this
-        if (quad.getqSide() == Quad.QUAD_SIDE_MIN)
+        if (quad.getqSide() == Quad.QUAD_SIDE_MIN) {
+            logger.info(quad);
             return;
+        }
         //get quads inside current
         List<Quad> quadsInsideCurrent = getQuadsInsideQuad(quad.getId());
         for(Quad q: quadsInsideCurrent) {
             calculateStatsForQuad(q, qSide);
         }
-        //calculate stats
+        //calculate stats by smart aggregation of stats on previous levels
         Hashtable<String, Integer> table = new Hashtable<>();
         for(Quad q: quadsInsideCurrent) {
             if(q.getStats() != null) {
@@ -417,11 +420,20 @@ public class QuadManagerImpl implements IQuadManager{
         }
         if( !table.isEmpty()) {
             quad.setStats(table);
+            logger.info(quad);
             quadDataStore.save(quad);
         }
     }
 
-
+    /**
+     * Select from database only those quads, that is inside given but less
+     * only on one zoom level, in other words their quad side length is less of given
+     * by one magnitude of 2.
+     * Example: suppose quad that has quadId has qSide equal 64. Then it will return
+     * four quads inside this with qSide qual 32.
+     * @param quadId
+     * @return
+     */
     private List<Quad> getQuadsInsideQuad(long quadId){
         Query<Quad> q = quadDataStore.createQuery(Quad.class);
         q.or(
