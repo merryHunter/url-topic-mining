@@ -224,7 +224,7 @@ public class QuadManagerImpl implements IQuadManager{
     private void recursivePartitionQuadIntoChildren(Location topleft,
                                                     int parentQuadSide,
                                                     long parentQuadId) {
-        if (parentQuadSide == Quad.QUAD_SIDE)
+        if (parentQuadSide == Quad.QUAD_SIDE_MIN)
             return;
 
         //creating subquad 0
