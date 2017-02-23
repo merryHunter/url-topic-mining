@@ -51,7 +51,7 @@ public class QuadManagerImpl implements IQuadManager{
     private MongoCollection quads;
 
     /** All URLs. */
-    private MongoCollection URLs;
+    private MongoCollection<Document> URLs;
 
     private Morphia morphia;
 
@@ -286,20 +286,13 @@ public class QuadManagerImpl implements IQuadManager{
         URLs = mongoDatabase.getCollection(URL_COLLECTION);
         int nSameQuadGeohash = 0;
         int m = 0;
-        MongoCollection<Document> col = mongoDatabase.getCollection("output");
-//        try {
-//            for (Object o : URLs.find()) { // .batchSize(128)
-            try (MongoCursor<Document> cur = col.find().iterator()) {
+            try (MongoCursor<Document> cur = URLs.find().iterator()) {
                 while (cur.hasNext()) {
                     Document d = cur.next();
-                    logger.info(count);
-//                Document d = (Document) o;
-                    // check if there is at least one good urls,
-                    // then try to put it into quads
-                    //TODO: try to access saved locally urls, if no - then fetch
-                    List<String> cleanedUrls = HtmlUtil.getCleanedUrlsByMimeType(
+                    // try to access saved locally urls
+                    List<String> cleanedUrls = HtmlUtil.getListSavedUrls(
                             (String) d.get("urls"));
-                    if (cleanedUrls.size() > 0) {
+                    if (cleanedUrls.size() > 0) { // if there is at least one saved url, then add to quad
                         double lat = (double) d.get("lat");
                         double lon = (double) d.get("lon");
                         String urlHash = GeoHash
@@ -317,10 +310,10 @@ public class QuadManagerImpl implements IQuadManager{
                             if (quadList.size() > m) {
                                 m = quadList.size();
                             }
-//                    logger.info("Same geoHash retrieved:" + Integer.toString(quadList.size()));
                             Quad q = selectQuadByUrlLocation(quadList, new Location(lat, lon));
                             if (q != null) {
-                                q.setUrls(cleanedUrls);
+                                q.addUrlsAll(cleanedUrls);
+                                q.setGeoPoints(q.getGeoPoints() + 1);
                                 quadDataStore.save(q);
                             } else {
                                 logger.info("No quads match geohash: " +
@@ -341,9 +334,6 @@ public class QuadManagerImpl implements IQuadManager{
                                 Integer.toString(nSameQuadGeohash / count));
                         logger.info("Total number of valid urls: " +
                                 Integer.toString(HtmlUtil.getnValidUrls()));
-                        if (count == 1000) {
-                            break;
-                        }
                     }
                 }
                 logger.info("Number of urls location without match quads: "
@@ -352,7 +342,6 @@ public class QuadManagerImpl implements IQuadManager{
                 logger.info("partitionUrls finished");
                 logger.info(m);
             }
-//        }
         catch (Exception e){
             logger.error(e.getMessage());
             logger.error("partitionUrls interrupted by mongodb error!");
@@ -412,17 +401,31 @@ public class QuadManagerImpl implements IQuadManager{
             calculateStatsForQuad(q, qSide);
         }
         //calculate stats by smart aggregation of stats on previous levels
-        Hashtable<String, Integer> table = new Hashtable<>();
-        for(Quad q: quadsInsideCurrent) {
-            if(q.getStats() != null) {
-                q.getStats().forEach((k,v) -> table.merge(k, v, (v1,v2) -> v1 + v2));
-            }
-        }
+        Hashtable<String, Integer> table = computeStatsAggregation(quadsInsideCurrent);
+//        for(Quad q: quadsInsideCurrent) {
+//            if(q.getStats() != null) {
+//                q.getStats().forEach((k,v) -> table.merge(k, v, (v1,v2) -> v1 + v2));
+//            }
+//        }
         if( !table.isEmpty()) {
             quad.setStats(table);
             logger.info(quad);
             quadDataStore.save(quad);
         }
+    }
+
+    private Hashtable<String, Integer> computeStatsAggregation(List<Quad> quads) {
+        Hashtable<String, Integer> result = new Hashtable<>();
+
+        for(Quad q: quads){
+            Hashtable<String, Integer> stats = q.getStats();
+            for(String t: stats.keySet()){
+
+            }
+        }
+//        int nQuadsInCommon = getNumberQuadsInCommon(quads);
+//        float geoPointRation = getGeoPointRation(quads);
+        return null;
     }
 
     /**

@@ -51,7 +51,7 @@ public class SparkQuadManager {
             @Override
             public Quad call(Quad q) throws Exception {
                 q.setStats(LDATopicDetector.getTopicStatsByUrls(q.getUrls(),
-                                            HtmlUtil.PAGE_TYPE.URL_LOCATION));
+                                            HtmlUtil.PAGE_TYPE.BODY));
                 return q;
             }
         });

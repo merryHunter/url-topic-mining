@@ -8,8 +8,11 @@ import com.mongodb.client.MongoDatabase;
 import detection.Quad;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
-import java.util.ArrayList;
-import java.util.Collections;
+
+import java.util.*;
+
+import org.asynchttpclient.*;
+
 import java.util.concurrent.CompletableFuture;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -21,8 +24,6 @@ import org.mongodb.morphia.query.Query;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -31,14 +32,28 @@ public class HtmlUtil {
     private static final Logger logger = Logger.getLogger(HtmlUtil.class);
 
     private static final int CONNECTION_TIMEOUT = 5000;  //5s
+    private static final int MIN_HTML_LENGTH = 140; // like in Twitter
+    private static final String DIRECTORY = "data/urls2/fetched_pages/";
+
+    private static AsyncHttpClient asyncHttpClient = new DefaultAsyncHttpClient();
 
     public static enum PAGE_TYPE{
-        TITLE,
         BODY,
         URL_LOCATION
     }
 
     private static volatile int nValidUrls;
+
+    public static List<String> getListSavedUrls(String urls) {
+        List<String> savedUrls = new LinkedList<>();
+        for (String s: Arrays.asList(urls.split("\\|"))){
+            if (new File(DIRECTORY, Integer.toString(s.hashCode()) + ".txt")
+                                                                    .exists()){
+                savedUrls.add(s);
+            }
+        }
+        return savedUrls;
+    }
 
     public static String getUrlLocationTokenized(String url){
         Matcher m = Pattern.compile("([a-z]*)").matcher(url);
@@ -61,28 +76,17 @@ public class HtmlUtil {
         if (page_type == PAGE_TYPE.URL_LOCATION){
             for (String s : urls) {
                 String html = getUrlLocationTokenized(s);
-                if ( !html.equals(""))
+                if ( !html.equals("")) {
                     htmlList.add(html);
-            }
-        } else if (page_type == PAGE_TYPE.TITLE){
-            for (String s : urls) {
-                try {
-                String html = getTitles(s);
-                    //TODO: ensure we do not add empty lines!
-                    htmlList.add(html);
-                }catch (Exception e){
-                    logger.error("Unable to fetch url:" + s + "\n" +
-                            e.getMessage());
-                    //add to list tokenized url location
-                    htmlList.add(getUrlLocationTokenized(s));
                 }
             }
         } else if (page_type == PAGE_TYPE.BODY){
             for (String s : urls) {
                 try {
-                    String html = HtmlUtil.getRawText(s);
-                    //TODO: ensure we do not add empty lines!
-                    htmlList.add(html);
+                    String html = HtmlUtil.readHtmlFromSavedFile(s);
+                    if ( html != null){
+                        htmlList.add(html);
+                    }
                 } catch (Exception e){
                     logger.error("Unable to fetch url:" + s + "\n" +
                             e.getMessage());
@@ -92,9 +96,21 @@ public class HtmlUtil {
         return htmlList;
     }
 
-    private static void saveToFile(String html) {
-        String hashTextName = Integer.toString(html.hashCode());
-        File file = new File("data/urls2/fetched_pages/" + hashTextName + ".txt");
+    private static String readHtmlFromSavedFile(String url) {
+        String html = null;
+        try{
+            FileInputStream inputStream = new FileInputStream(DIRECTORY
+                    + Integer.toString(url.hashCode()) + ".txt");
+            html = IOUtils.toString(inputStream);
+        } catch (Exception e){
+            logger.error("Could not open file with url: " + url);
+        }
+        return html;
+    }
+
+    private static void saveToFile(String html, String url) {
+        String hashTextName = Integer.toString(url.hashCode());
+        File file = new File(DIRECTORY + hashTextName + ".txt");
         try {
             file.createNewFile();
             FileOutputStream fos = new FileOutputStream(file);
@@ -105,11 +121,13 @@ public class HtmlUtil {
         }
     }
 
+    @Deprecated
     public static String getRawText(String urlToRead) throws Exception {
         try{ //try to get saved html from file
             FileInputStream inputStream = new FileInputStream(
                     "data/urls2/fetched_pages/" +
                             Integer.toString(urlToRead.hashCode()) + ".txt");
+
              return IOUtils.toString(inputStream);
         }catch (Exception e){ //fetch url
             StringBuilder result = new StringBuilder();
@@ -126,16 +144,16 @@ public class HtmlUtil {
             rd.close();
             String html = Jsoup.parse(result.toString()).text();
             try {
-                saveToFile(html);
+                saveToFile(html, urlToRead);
             }catch (Exception ioe) {
                 logger.error("Unable to save html to file. " +
                                               ioe.getMessage());
             }
             return html;
         }
-
     }
 
+    @Deprecated
     public static String getTitles(String s)throws Exception {
         StringBuilder result = new StringBuilder();
         URL url = new URL(s);
@@ -153,90 +171,66 @@ public class HtmlUtil {
         return doc.title();
     }
 
-    public static List<String> getCleanedUrlsByMimeType(String urlsFromDB){
-        List<String> cleanedUrls = Collections.synchronizedList(new ArrayList<>());
-        if(urlsFromDB != null) {
-            String[] urls = urlsFromDB.split("\\|");
-
-            for (String u : urls) {
+    public static void preprocessURLsToFindHtmlPages(final List<String> urls) {
+        for(String url : urls) {
+            if (urlLocationValid(url)) {
                 try {
-                    Thread t = new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                URL url = new URL(u);
-                                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                                connection.setRequestMethod("HEAD");
-                                connection.setConnectTimeout(5000);
-                                connection.connect();
-                                String contentType = connection.getContentType();
-                                contentType = contentType.trim();
-                                if (contentType.contains("text/html") ||
-                                        contentType.contains("text/plain")) {
-                                    cleanedUrls.add(u);
-                                    nValidUrls++;
+                    asyncHttpClient.prepareHead(url)
+                            .setRequestTimeout(CONNECTION_TIMEOUT)
+                            .execute(new AsyncCompletionHandler<Response>() {
+                                @Override
+                                public Response onCompleted(Response response) throws Exception {
+                                    String contentType = response.getHeader("Content-Type");
+                                    if (contentType.equalsIgnoreCase("text/html")) {
+                                        downloadHtmlPage(response.getUri().toUrl());
+                                    }
+                                    return response;
                                 }
-                            } catch (Exception e) {
-                            }
-                        }
-                    });
-                    t.start();
-                    t.join();
+
+                                @Override
+                                public void onThrowable(Throwable t) {
+                                    //TODO: log that smth wrong happened
+                                }
+                            });
                 } catch (Exception e) {
-                    logger.error("test:unable to fetch head " + e.getMessage());
+                    e.printStackTrace();
+                    System.out.println(e.getMessage());
                 }
             }
         }
-        return cleanedUrls;
+
     }
 
-    public static void fetchAndSaveUrls(){
-        MongoClient mongoClient = MongoUtil.getOrCreateMongoClient();
-        MongoDatabase mongoDatabase = MongoUtil.getDatabase("morphia_test");
-        Morphia morphia = new Morphia();
-        morphia.map(Quad.class);
-        Datastore quadDataStore = morphia.createDatastore(mongoClient, "morphia_test");
-
-        Query<Quad> queryQuad = quadDataStore
-                .createQuery(Quad.class)
-                .filter("urls exists", true);
-        List<Quad> quadList = queryQuad.asList();
-        int size = quadList.size();
-        int nUrlsDeleted = 0;
-
-        for (int i = 0; i < size; i++) {
-            Quad q = quadList.get(i);
-            for(String u :  q.getUrls()) {
-                int nUrls = q.getUrls().size();
-                List<String> cleanedUrls = new LinkedList<>();
-                try {
-                    URL url = new URL(u);
-                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                    connection.setRequestMethod("HEAD");
-                    connection.setConnectTimeout(CONNECTION_TIMEOUT);
-                    connection.connect();
-                    String contentType = connection.getContentType();
-                    if ( contentType.equals("text/html") ||
-                            contentType.equals("text/plain")){
-                        cleanedUrls.add(u);
-                    }
-                }catch (Exception e){
-                    logger.error("test:unable to fetch head " + e.getMessage());
-                }
-
-                q.setUrls(cleanedUrls);
-                try {
-                    quadDataStore.save(q);
-                }catch (Exception e){logger.error("unable to save " + e.getMessage());}
-                nUrlsDeleted += nUrls - cleanedUrls.size();
-            }
-
-            if(i % 1000 == 0){
-                logger.info("Processed " + Integer.toString(i) + " quads.");
-            }
+    private static boolean urlLocationValid(String url) {
+        if ( url.length() < 15 ){
+            return false;
         }
-        logger.info("Deleted urls:" + Integer.toString(nUrlsDeleted));
+        if (url.endsWith(".jpg") || url.endsWith(".png") ||
+                url.endsWith(".gif")  || url.endsWith(".json") || url.endsWith(".xml") ){
+            return false;
+        }
+        return true;
+    }
 
+    private static void downloadHtmlPage(final String url) {
+        asyncHttpClient
+                .prepareGet(url)
+                .setRequestTimeout(CONNECTION_TIMEOUT)
+                .execute(new AsyncCompletionHandler<Response>(){
+            @Override
+            public Response onCompleted(Response response) throws Exception{
+                String htmlPage = response.getResponseBody();
+                htmlPage = Jsoup.parse(htmlPage).text();
+                if(htmlPage.length() > MIN_HTML_LENGTH) {
+                    saveToFile(htmlPage, url);
+                }
+                return response;
+            }
+            @Override
+            public void onThrowable(Throwable t){
+                //TODO: log that smth wrong happened
+            }
+        });
     }
 
     public static int getnValidUrls() {

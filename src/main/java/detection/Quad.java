@@ -59,10 +59,13 @@ public class Quad implements Serializable {
     /** URLs inside this quad. */
     protected List<String> urls = new LinkedList<>();
 
+    /** Number of different geopoints inside quads, from where url were requested*/
+    protected int geoPoints;
+
     public Quad(){}
 
     public Quad(long qId, int qSide, Location topleft, Location bottomright,
-                Hashtable<String, Integer> stats, String geoHash, List<String> urls) {
+                Hashtable<String, Integer> stats, String geoHash, List<String> urls, int geoPoints) {
         this.qId = qId;
         this.qSide = qSide;
         this.topleft = topleft;
@@ -70,6 +73,7 @@ public class Quad implements Serializable {
         this.stats = stats;
         this.geoHash = geoHash;
         this.urls = urls;
+        this.geoPoints = geoPoints;
     }
 
     /** TODO: THIS IS NOT USED MADATUFKA */
@@ -83,6 +87,7 @@ public class Quad implements Serializable {
                         center.getLatitude(),
                         center.getLongitude(),
                         GeolocationUtil.GEOHASH_PRECISION);
+        geoPoints = 0;
     }
 
     /**
@@ -109,6 +114,7 @@ public class Quad implements Serializable {
         }else {
             geoHash = null;
         }
+        geoPoints = 0;
     }
 
     public Location calcBottomLeft() {
@@ -166,8 +172,8 @@ public class Quad implements Serializable {
         urls.add(url);
     }
 
-    public void addUrlsAll(String[] urlsList){
-        Collections.addAll(urls, urlsList);
+    public void addUrlsAll(List<String> urlsList){
+        urls.addAll(urlsList);
     }
 
     public String getGeoHash() {
@@ -232,5 +238,11 @@ public class Quad implements Serializable {
         this.geoHash = geoHash;
     }
 
+    public int getGeoPoints() {
+        return geoPoints;
+    }
 
+    public void setGeoPoints(int geoPoints) {
+        this.geoPoints = geoPoints;
+    }
 }

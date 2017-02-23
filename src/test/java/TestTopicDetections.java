@@ -57,7 +57,7 @@ public class TestTopicDetections {
         QuadManagerImpl quadManager = new QuadManagerImpl();
         quadManager.partitionMapIntoQuads(
                 new Location(46.498606, 11.35204), new Location(0.0,0.0), 2);
-        quadManager.partitionUrls();
+//        quadManager.partitionUrls();
 //        quadManager.computeTopicStatsSmallestQuads();
     }
 

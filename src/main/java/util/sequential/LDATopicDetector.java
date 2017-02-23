@@ -27,7 +27,7 @@ public class LDATopicDetector {
 
     private static final int NUM_WORDS = 5;
 
-
+    private static final int K_IS_IN_COMMON = 2;
 
     /**
      *  Compute topic statistics for all urls in the list.
@@ -43,10 +43,6 @@ public class LDATopicDetector {
         if (page_type == HtmlUtil.PAGE_TYPE.URL_LOCATION){
             htmlList = HtmlUtil
                     .getHtmlPages(urls, HtmlUtil.PAGE_TYPE.URL_LOCATION);
-        }
-        else if (page_type == HtmlUtil.PAGE_TYPE.TITLE) {
-            htmlList = HtmlUtil
-                    .getHtmlPages(urls, HtmlUtil.PAGE_TYPE.TITLE);
         } else{
             htmlList = HtmlUtil
                     .getHtmlPages(urls, HtmlUtil.PAGE_TYPE.BODY);
@@ -56,6 +52,7 @@ public class LDATopicDetector {
         pipeList.add( new CharSequenceLowercase() );
         pipeList.add( new CharSequence2TokenSequence(
                 Pattern.compile("\\p{L}[\\p{L}\\p{P}]+\\p{L}")) );
+        //TODO: move stoplist to ...?
         pipeList.add( new TokenSequenceRemoveStopwords(
                 new File("stoplist-en.txt"), "UTF-8", false, false, false) );
         pipeList.add( new TokenSequence2FeatureSequence() );
@@ -84,7 +81,7 @@ public class LDATopicDetector {
                 int rating = Integer.parseInt(counts.group(1).trim());
                 if (topicsStats.containsKey(topic)){
                     int old_r = topicsStats.get(topic);
-                    old_r *= 3;
+                    old_r *= LDATopicDetector.K_IS_IN_COMMON;
                     topicsStats.put(topic, old_r);
                 }else {
                     topicsStats.put(topic, rating);

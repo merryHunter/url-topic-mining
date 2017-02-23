@@ -1,10 +1,22 @@
+import com.mongodb.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
+import com.mongodb.client.MongoDatabase;
+import org.apache.commons.io.IOUtils;
+import org.apache.log4j.Logger;
+import org.asynchttpclient.AsyncHttpClient;
+import org.asynchttpclient.AsyncHttpClientConfig;
+import org.asynchttpclient.DefaultAsyncHttpClient;
+import org.asynchttpclient.config.AsyncHttpClientConfigDefaults;
+import org.bson.Document;
 import org.junit.Test;
 import org.junit.*;
 import util.HtmlUtil;
+import util.MongoUtil;
 
 import javax.ws.rs.core.MultivaluedHashMap;
 
-import java.io.IOException;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
@@ -20,6 +32,8 @@ import static org.junit.Assert.*;
  * @author Dmytro on 06/02/2017.
  */
 public class RandomTestsFIleTest {
+
+    private static final Logger logger = Logger.getLogger(RandomTestsFIle.class);
 
     @Test
     public void test_method_1() {
@@ -229,13 +243,6 @@ public class RandomTestsFIleTest {
         return result;
     }
 
-
-    @Test
-    public void onTestFetchAndSaveUrls(){
-        HtmlUtil.fetchAndSaveUrls();
-    }
-
-
     @Test
     public void onTestAsyncRequests() throws IOException, InterruptedException {
         String[] urls = {"http://cstatic.weborama.fr/advertiser/426/43/238/319/wbrm_animation.html",
@@ -289,42 +296,31 @@ public class RandomTestsFIleTest {
                 "http://www.snai.it/mobilepage/richiestadeposito.php?carta=6031980010126789&token=94490e8a14b5b869a9529a20f1583644&pvend_sport=15215&tipo=sportGAME360&device=iphone&back_url=http://native_back",
                 "http://www.rai.it/dl/portale/html/palinsesti/static/palinsestoOraInOnda.html?output=json&id=636000763494965056"
         };
-       /* try(AsyncHttpClient asyncHttpClient = asyncHttpClient()) {
-            for(String u: urls) {
-                asyncHttpClient
-                        .prepareGet(u)
-                        .execute()
-                        .toCompletableFuture()
-                        .thenApply(Response::getContentType)
-                        .thenAccept(System.out::println)
-                        .join();
-            }
-        }*/
-        for (String u : urls) {
-//            Thread t = new Thread(new Runnable() {
-//                @Override
-//                public void run() {
-                    try {
-                        URL url = new URL(u);
-                        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                        connection.setRequestMethod("HEAD");
-                        connection.setConnectTimeout(20000);
-                        connection.connect();
-                        String contentType = connection.getContentType();
-                        contentType = contentType.trim();
-                        if (contentType.contains("text/html") ||
-                                contentType.contains("text/plain")) {
-                            System.out.println("YES");
-                        }
-                        else{
-                            System.out.println(contentType);}
-                    } catch (Exception e) {
-                    }
-//                }
-//            });
-//            t.start();
-//            t.join();
-        }
+            HtmlUtil.preprocessURLsToFindHtmlPages(Arrays.asList(urls));
 
+    }
+
+    @Test
+    public void onTestPreprocessUrls(){
+        int nSameQuadGeohash = 0;
+        int c = 0;
+        MongoUtil.getOrCreateMongoClient();
+        MongoDatabase mongoDatabase = MongoUtil.getDatabase("morphia_test");
+        MongoCollection<Document> col = mongoDatabase.getCollection("output");
+        try (MongoCursor<Document> cur = col.find().iterator()) {
+            while (cur.hasNext()) {
+                Document d = cur.next();
+                try {
+                    HtmlUtil.preprocessURLsToFindHtmlPages(
+                            Arrays.asList(((String) d.get("urls")).split("\\|")));
+                } catch (Exception e){
+
+                }
+                c++;
+                if (c % 1000 == 0){
+                    logger.info("preprocessedurls:" + c);
+                }
+            }
+        }
     }
 }
