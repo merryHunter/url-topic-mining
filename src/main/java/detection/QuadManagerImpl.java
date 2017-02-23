@@ -43,9 +43,9 @@ public class QuadManagerImpl implements IQuadManager{
     //TODO:
 
     /** */
-    private MongoClient mongoClient;
+    private static MongoClient mongoClient;
 
-    private MongoDatabase mongoDatabase;
+    private static MongoDatabase mongoDatabase;
 
     /** All quads partitioned over the world. */
     private MongoCollection quads;
@@ -53,19 +53,21 @@ public class QuadManagerImpl implements IQuadManager{
     /** All URLs. */
     private MongoCollection URLs;
 
-    private Morphia morphia;
+    private static Morphia morphia;
 
-    private Datastore quadDataStore;
+    private static Datastore quadDataStore;
 
     private int countUrlNotMatchingQuads = 0;
 
-    public QuadManagerImpl(){
+    static {
         mongoClient = MongoUtil.getOrCreateMongoClient();
         mongoDatabase = MongoUtil.getDatabase(DATABASE_NAME);
         morphia = new Morphia();
         morphia.map(Quad.class);
         quadDataStore = morphia.createDatastore(mongoClient, DATABASE_NAME);
         logger.info("QuadManagerImpl initialized");
+    }
+    public QuadManagerImpl(){
     }
 
     /**
@@ -369,7 +371,7 @@ public class QuadManagerImpl implements IQuadManager{
 
     @Override
     //TODO: change signature of the function from hashtable to ...
-    public Hashtable<Long, String> getTopics(Location topleft, double distanceToBottomRight, int S) {
+    public Hashtable<Long, String> getTopics(Location topLeft, Location bottomRight, int S) {
         int qSide = GeolocationUtil.getQuadSideClosestToGivenStep(S);
         int level = GeolocationUtil.getLevel(qSide);
         if (qSide < Quad.QUAD_SIDE_MIN){
@@ -377,8 +379,8 @@ public class QuadManagerImpl implements IQuadManager{
             return null;
         }
         String geoHashTopLeft = GeoHash.geoHashStringWithCharacterPrecision(
-                                    topleft.getLatitude(),
-                                    topleft.getLongitude(),
+                                    topLeft.getLatitude(),
+                                    topLeft.getLongitude(),
                                     GeolocationUtil.GEOHASH_PRECISION);
         Query<Quad> queryQuad = quadDataStore
                 .createQuery(Quad.class).filter("geoHash ==", geoHashTopLeft);
@@ -388,13 +390,17 @@ public class QuadManagerImpl implements IQuadManager{
             topQuadId /= 10;
             level--;
         }
-        queryQuad = quadDataStore
-                .createQuery(Quad.class).filter("qId ==", topQuadId);
-        Quad topQuad = queryQuad.asList().get(0);
+        Quad topQuad = getQuadById(topQuadId);
 //        System.out.println(topQuad);
-        //how many quads on a diagonal
-        int nDiagonal = (int)(distanceToBottomRight / Quad.QUAD_DIAGONAL);
-        List<Quad> quadsInsideGivenArea = getQuadsInsideGivenArea(topQuad, nDiagonal);
+        Location bottomLeft = new Location(bottomRight.getLatitude(), topLeft.getLongitude());
+        double height = GeolocationUtil.calculateDistance(topLeft, bottomLeft);
+        Location topRight = new Location(topLeft.getLatitude(), bottomRight.getLongitude());
+        double width = GeolocationUtil.calculateDistance(topLeft, topRight);
+        //TODO: continue from here
+        int widthInQuads = (int) width / qSide;
+        int heightInQuads = (int) height / qSide;
+        int nDiagonal = 5; //(int)(distanceToBottomRight / Quad.QUAD_DIAGONAL);
+        List<Quad> quadsInsideGivenArea = getQuadsInsideGivenArea(topQuad, widthInQuads, heightInQuads);
 //        logger.info(topQuad);
         for(Quad q: quadsInsideGivenArea) {
             calculateStatsForQuad(q, qSide);
@@ -402,6 +408,13 @@ public class QuadManagerImpl implements IQuadManager{
 
         }
         return null;
+    }
+
+    public static Quad getQuadById(long quadId) {
+        Query<Quad> queryQuad;
+        queryQuad = quadDataStore
+                .createQuery(Quad.class).filter("qId ==", quadId);
+        return queryQuad.asList().get(0);
     }
 
 
@@ -454,12 +467,25 @@ public class QuadManagerImpl implements IQuadManager{
      * Collect quads of the same side size as the given quad, on the same
      * zoom level.
      * @param topLeftQuad
-     * @param nDiagonal : how many quads on the diagonal
+     * @param widthInQuads : how many quads of a given size fit in the area horizontally
+     * @param heightInQuads : how many quads of a given size fit in the area vertically
      * @return
      */
-    private List<Quad> getQuadsInsideGivenArea(Quad topLeftQuad, int nDiagonal){
+    private List<Quad> getQuadsInsideGivenArea(Quad topLeftQuad, int widthInQuads, int heightInQuads){
         List<Quad> quads = new LinkedList<>();
         quads.add(topLeftQuad);
+        long topLeftId = topLeftQuad.getId();
+        long rightNeighborId = topLeftId;
+        long firstInCurrentRow = topLeftId;
+        for (int i=0; i<heightInQuads; i++) {
+            for (int j=0; j<widthInQuads; j++) {
+                rightNeighborId = Quad.getRightNeighborId(rightNeighborId); //move to the right in the row
+                Quad rightNeighbor = getQuadById(rightNeighborId);
+                quads.add(rightNeighbor);
+            }
+            firstInCurrentRow = Quad.getLowerNeighborId(firstInCurrentRow);
+            rightNeighborId = firstInCurrentRow; //move down in the column as the row is traversed with previous for loop
+        }
         return quads;
     }
 
@@ -500,7 +526,7 @@ public class QuadManagerImpl implements IQuadManager{
      * computing topics stats for smallest quads, directly compute stats for
      * urls inside quads.
      */
-
+    //TODO: ВСЬО ПЕРЕПИСАТИ НАХУЙ
     public Hashtable<Quad, Set<String>> getTopicsByRerun(
             Location topleft, double distanceToBottomRight, int S){
         int qSide = GeolocationUtil.getQuadSideClosestToGivenStep(S);
@@ -527,7 +553,7 @@ public class QuadManagerImpl implements IQuadManager{
         System.out.println(topQuad);
         //how many quads on a diagonal
         int nDiagonal = (int)(distanceToBottomRight / Quad.QUAD_DIAGONAL);
-        List<Quad> quadsInsideGivenArea = getQuadsInsideGivenArea(topQuad, nDiagonal);
+        List<Quad> quadsInsideGivenArea = null; //getQuadsInsideGivenArea(topQuad, widthInQuads, nDiagonal);
         Hashtable<Quad, Set<String>> result = new Hashtable<>();
         int nUrls = 0;
         for(Quad q: quadsInsideGivenArea) {

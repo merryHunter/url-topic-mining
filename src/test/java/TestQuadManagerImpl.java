@@ -24,6 +24,34 @@ import java.util.List;
  */
 
 public class TestQuadManagerImpl {
+    @Test
+    public void testGetUpperNeighborId() throws Exception {
+        long originalId = 10031; //should return 10013
+
+        System.out.println(originalId + " up, ");
+        long newOne = Quad.getUpperNeighborId(originalId);
+
+        System.out.println(newOne + " up, ");
+        newOne = Quad.getUpperNeighborId(newOne);
+
+        System.out.println(newOne + " left, ");
+        newOne = Quad.getLeftNeighborId(newOne);
+
+        System.out.println(newOne + " left, ");
+        newOne = Quad.getLeftNeighborId(newOne);
+
+        System.out.println(newOne + " down, ");
+        newOne = Quad.getLowerNeighborId(newOne);
+
+        System.out.println(newOne + " down, ");
+        newOne = Quad.getLowerNeighborId(newOne);
+
+        System.out.println(newOne + " left, ");
+        newOne = Quad.getLeftNeighborId(newOne);
+
+        System.out.println(newOne + " this was final");
+
+    }
 
     static final Logger logger = Logger.getLogger(TestQuadManagerImpl.class);
 
@@ -183,6 +211,21 @@ public class TestQuadManagerImpl {
         Query<Quad> queryQuad = quadDataStore
                 .createQuery(Quad.class).filter("qId ==", childID );
         return queryQuad.asList().get(0);
+    }
+
+
+    @Test
+    public void testLocations() {
+        Location topLeft = new Location(51.108091, 7.747003);
+        Location bottomRight = new Location(48.313695, 13.905610);
+
+        Location bottomLeft = new Location(bottomRight.getLatitude(), topLeft.getLongitude());
+        double height = GeolocationUtil.calculateDistance(topLeft, bottomLeft);
+        Location topRight = new Location(topLeft.getLatitude(), bottomRight.getLongitude());
+        double width = GeolocationUtil.calculateDistance(topLeft, topRight);
+
+        System.out.println("width: " + width);
+        System.out.println("height: " + height);
     }
 
 }

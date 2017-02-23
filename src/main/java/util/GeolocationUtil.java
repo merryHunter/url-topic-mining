@@ -41,6 +41,20 @@ public class GeolocationUtil {
         return new Location(lat2, lon2);
     }
 
+    public static double calculateDistance(Location StartP, Location EndP) {
+        double lat1 = StartP.getLatitude();
+        double lat2 = EndP.getLatitude();
+        double lon1 = StartP.getLongitude();
+        double lon2 = EndP.getLongitude();
+        double dLat = Math.toRadians(lat2-lat1);
+        double dLon = Math.toRadians(lon2-lon1);
+        double a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
+                        Math.sin(dLon/2) * Math.sin(dLon/2);
+        double c = 2 * Math.asin(Math.sqrt(a));
+        return R * c;
+    }
+
     public static Location getAlternativeNewLocation(double lat, double lon, double bearing, double d) {
         bearing = Math.toRadians(bearing); //transform degrees into radians
         lat = Math.toRadians(lat);
