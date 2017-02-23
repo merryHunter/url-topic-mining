@@ -18,8 +18,8 @@ public class GeolocationUtil {
 
     /**
      * Compute new location given bearing nad distance from a location.
-     * @param bearing: Bearing in degrees.
-     * @param d: distance to the new location.
+     * @param bearing: Bearing in degrees, north is 0 degrees.
+     * @param d: distance to the new location in km.
      * @return <code>{@link Location}</code>  object cnotaining lat & lon.
      */
 
@@ -28,7 +28,7 @@ public class GeolocationUtil {
         bearing = Math.toRadians(bearing);
         lat = Math.toRadians(lat);
         lon = Math.toRadians(lon);
-        d *= 0.7001; // convert km to pseudo-miles
+        //d *= 0.7001; // convert km to pseudo-miles
         double lat2 = Math.asin( Math.sin(lat)*Math.cos(d/R) +
                 Math.cos(lat)*Math.sin(d/R)*Math.cos(bearing));
 
@@ -40,6 +40,33 @@ public class GeolocationUtil {
 
         return new Location(lat2, lon2);
     }
+
+    public static Location getAlternativeNewLocation(double lat, double lon, double bearing, double d) {
+        bearing = Math.toRadians(bearing); //transform degrees into radians
+        lat = Math.toRadians(lat);
+        lon = Math.toRadians(lon);
+
+        double latNew = Math.asin(
+                Math.sin(lat)*Math.cos(d)
+                        + Math.cos(lat)*Math.sin(d)*Math.cos(bearing)
+        );
+        double intermediateLon = Math.atan2(
+                Math.sin(bearing)*Math.sin(d)*Math.cos(lat),
+                Math.cos(d) - Math.sin(lat)*Math.sin(latNew)
+        );
+
+        double lonNew = (lon-intermediateLon + Math.PI) % 2*Math.PI - Math.PI;
+
+//        lat =asin(sin(lat1)*cos(d)+cos(lat1)*sin(d)*cos(tc))
+//        dlon=atan2(sin(tc)*sin(d)*cos(lat1),cos(d)-sin(lat1)*sin(lat))
+//        lon=mod( lon1-dlon +pi,2*pi )-pi
+
+        latNew = Math.toDegrees(latNew);
+        lonNew = Math.toDegrees(lonNew);
+        return new Location(latNew, lonNew);
+    }
+
+
 
     /**
      * Get zoom level. In fact, calculate closest previous power of two -

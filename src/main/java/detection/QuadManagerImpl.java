@@ -4,7 +4,6 @@ import ch.hsr.geohash.GeoHash;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import org.apache.commons.collections.map.MultiValueMap;
 import org.apache.log4j.Logger;
 import org.bson.Document;
 import org.mongodb.morphia.Datastore;
@@ -91,34 +90,23 @@ public class QuadManagerImpl implements IQuadManager{
          */
         QuadManagerImpl.topLevelQuadCount++;
 
+        /** начінаємо від того квада ходити в усі чотири сторони в рекурсивній функції */
         recursiveTraverseTopLevelQuads(firstQuad);
-//        //начінаємо від того квада ходити в усі чотири сторони по часовій стрілці починаючи від правого
-//        Location nextQuadLocation = firstQuad.calcTopRight(); //go to the right quad
-//
-//        //TODO: перевірка чи такий вже існує
-//        //
-//        TopLevelQuad topLevelQuad = new TopLevelQuad(nextQuadLocation, quadSide);
-//        firstQuad.setId(QuadManagerImpl.topLevelQuadCount);
-//        recursivePartitionQuadIntoChildren(nextQuadLocation, quadSide, QuadManagerImpl.topLevelQuadCount);
-//        QuadManagerImpl.topLevelQuadCount++;
-//        //TODO: save()
-//        //
+
 
         //в цій верхній функції спробувати пройтися по всіх сусідах, і для кожного сусіда заходити в дітей.
         logger.info("partitionMapIntoQuads into quads finished.");
     }
 
     /**
-     * @param pivot : pivot quad around which we'll traverse up, right, down and left
+     * @param pivot : pivot quad around which we'll traverse other quads up, right, down and left
      */
     //TODO: у фінальній версії це не статік і прайват
     public static void recursiveTraverseTopLevelQuads(TopLevelQuad pivot) {
-        //TODO: зробити нормальну перевірку на кінець світу
-        if (pivot.getTopleft().getLatitude() > 50 || pivot.getTopleft().getLatitude() < -50 || pivot.getTopleft().getLongitude() > 140 || pivot.getTopleft().getLongitude() < -140 )
-            return;
-
         //STEP 1 - начінаємо від даного квада ходити в усі чотири сторони по часовій стрілці починаючи від правого
         Location nextQuadLocation = pivot.calcTopRight(); //go to the right quad from pivot
+        if (isTheEndOfMap(nextQuadLocation))
+            return; //exit from recursive function because the end of the map was reached
         TopLevelQuad newQuad;
 
 
@@ -136,6 +124,8 @@ public class QuadManagerImpl implements IQuadManager{
 
         //STEP 2 - йдемо ВНИЗ
         nextQuadLocation = pivot.calcBottomLeft();
+        if (isTheEndOfMap(nextQuadLocation))
+            return;
         newQuad = new TopLevelQuad(nextQuadLocation, pivot.getqSide());
         if (!topLevelQuadExists(newQuad)) {
             newQuad.setId(QuadManagerImpl.topLevelQuadCount);
@@ -149,6 +139,8 @@ public class QuadManagerImpl implements IQuadManager{
 
         //STEP 3 - йдемо ВЛІВО
         nextQuadLocation = pivot.calcLeftNeighborStartingCoord();
+        if (isTheEndOfMap(nextQuadLocation))
+            return;
         newQuad = new TopLevelQuad(nextQuadLocation, pivot.getqSide());
         if (!topLevelQuadExists(newQuad)) {
             newQuad.setId(QuadManagerImpl.topLevelQuadCount);
@@ -162,6 +154,8 @@ public class QuadManagerImpl implements IQuadManager{
 
         //STEP 4 - йдемо ВГОРУ
         nextQuadLocation = pivot.calcUpperNeighborStartingCoord();
+        if (isTheEndOfMap(nextQuadLocation))
+            return;
         newQuad = new TopLevelQuad(nextQuadLocation, pivot.getqSide());
         if (!topLevelQuadExists(newQuad)) {
             newQuad.setId(QuadManagerImpl.topLevelQuadCount);
@@ -173,6 +167,16 @@ public class QuadManagerImpl implements IQuadManager{
             existing.bottomNeighbor = pivot; //we came from the bottom side
         }
 
+    }
+
+    private static boolean isTheEndOfMap(Location location) {
+        //65.953846, -25.095749 - iceland end
+        //66.5 -24.57
+
+        if (location.getLatitude() > 71 || location.getLatitude() < -35 || location.getLongitude() > 151 || location.getLongitude() < -25.56 )
+            return true;
+        else
+            return false;
     }
 
     private static TopLevelQuad getExistingTopLevelQuad(TopLevelQuad newQuad) {
@@ -353,7 +357,7 @@ public class QuadManagerImpl implements IQuadManager{
         //TODO: too many quads for a geoHash (~20) !! What should we do?
         Quad quadTopLeft = queryQuad.asList().get(0);
         long topQuadId = quadTopLeft.getId();
-        while(level > 3) {          // 2^3 == 8 == QUAD.QUAD_SIDE
+        while(level > 3) {          // 2^3 == 8 == QUAD.QUAD_SIDE - minimal available quad side
             topQuadId /= 10;
             level--;
         }
@@ -406,7 +410,7 @@ public class QuadManagerImpl implements IQuadManager{
     }
 
     /**
-     * Collect quads the same side side as the given quad, on the same
+     * Collect quads of the same side size as the given quad, on the same
      * zoom level.
      * @param topLeftQuad
      * @param nDiagonal : how many quads on the diagonal

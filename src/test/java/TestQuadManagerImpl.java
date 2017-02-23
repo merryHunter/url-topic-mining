@@ -4,6 +4,7 @@ import detection.QuadManagerImpl;
 import detection.TopLevelQuad;
 import org.apache.spark.sql.execution.columnar.FLOAT;
 import org.junit.Test;
+import util.GeolocationUtil;
 
 import java.util.Collection;
 import java.util.List;
@@ -34,8 +35,15 @@ public class TestQuadManagerImpl {
     }
 
     @Test
+    public void testGeoutil() {
+//        Location wtf = GeolocationUtil.old_getNewLocation(2.834115, 13.796509, 135,    2896.3097);
+        System.out.println("Petro");
+
+    }
+
+    @Test
     public void testTopLevelTraverse() {
-        int quadSide = 2048;
+        int quadSide = 4096;
         Location topLeft = new Location(2.834115, 13.796509);
         TopLevelQuad firstQuad = new TopLevelQuad(topLeft, quadSide);
         /**
@@ -67,9 +75,9 @@ public class TestQuadManagerImpl {
                 str.append(quad.calcBottomLeft().getLatitude() + ", " + quad.calcBottomLeft().getLongitude());
                 str.append(" {quad id: " + quad.getId() + "} <"+ getColour(i)+"> \n");
                 //TODO: выпилить нахуй
-                if (quad.getId() < 25) {
+//                if (quad.getId() < 25) {
                     System.out.println(str.toString());
-                }
+//                }
                 i++;
             }
         }
@@ -100,6 +108,38 @@ public class TestQuadManagerImpl {
             }
         }
         return "default";
+    }
+
+    void recursivePrintQuadForVisualisation(Quad q, int deepness) {
+        long parentQuadId = q.getId();
+
+        StringBuilder str = new StringBuilder();
+        //54.15626787405963, -58.88163421912802 {quad id} <green>
+        //39.8338819223521, -42.15296783993988 {quad id 2} <default>
+        str.append(q.getTopleft().getLatitude() + ", " + q.getTopleft().getLongitude());
+        str.append(" {quad id: " + q.getId() + "} <"+ getColour(deepness)+"> \n");
+        str.append(q.calcTopRight().getLatitude() + ", " + q.calcTopRight().getLongitude());
+        str.append(" {quad id: " + q.getId() + "} <"+ getColour(deepness)+"> \n");
+        str.append(q.getBottomright().getLatitude() + ", " + q.getBottomright().getLongitude());
+        str.append(" {quad id: " + q.getId() + "} <"+ getColour(deepness)+"> \n");
+        str.append(q.calcBottomLeft().getLatitude() + ", " + q.calcBottomLeft().getLongitude());
+        str.append(" {quad id: " + q.getId() + "} <"+ getColour(deepness)+"> \n");
+
+        System.out.println(str.toString());
+
+        long childID = parentQuadId*10 + 0;
+        Quad child = null; //TODO: get quad with id childID
+        recursivePrintQuadForVisualisation(child, deepness+1);
+        childID = parentQuadId*10 + 1;
+        child = null; //TODO: get quad with id childID
+        recursivePrintQuadForVisualisation(child, deepness+1);
+        childID = parentQuadId*10 + 2;
+        child = null; //TODO: get quad with id childID
+        recursivePrintQuadForVisualisation(child, deepness+1);
+        childID = parentQuadId*10 + 3;
+        child = null; //TODO: get quad with id childID
+        recursivePrintQuadForVisualisation(child, deepness+1);
+
     }
 
 }
