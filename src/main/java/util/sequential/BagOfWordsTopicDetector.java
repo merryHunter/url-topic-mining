@@ -4,29 +4,22 @@
 package util.sequential;
 
 
+import detection.ITopicDetector;
 import util.HtmlUtil;
 
 import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.List;
 
-@Deprecated
-public class BagOfWordsTopicDetector {
-    public static Hashtable<String, Integer> getTopicStatsByUrls(List<String> urls) throws Exception{
-        List<String> htmlList = new LinkedList<>();
+//@Deprecated
+public class BagOfWordsTopicDetector  implements ITopicDetector {
 
-        for (String s : urls) {
-            try {
-                String html = HtmlUtil.getTitles(s);
-                //TODO: ensure we do not add empty lines!
-                htmlList.add(html);
-            }catch (Exception e){
-//                logger.error("Unable to fetch url:" + s + "\n" + e.getMessage());
-                System.out.println("error on fetching urls");
-            }
-        }
+    @Override
+    public Hashtable<String, Integer> getTopicStatsByUrls(List<String> urls, HtmlUtil.PAGE_TYPE page_type) throws Exception {
+        List<String> htmlList = HtmlUtil.getHtmlPages(urls, HtmlUtil.PAGE_TYPE.BODY);
         CountVectorizer countVectorizer = CountVectorizer.withDefaultSettings();
         countVectorizer.fitTransform(htmlList);
+
         return countVectorizer.getTokenToIndex();
     }
 }

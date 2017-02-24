@@ -10,9 +10,7 @@ import org.bson.Document;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Morphia;
 import org.mongodb.morphia.query.Query;
-import util.GeolocationUtil;
-import util.HtmlUtil;
-import util.MongoUtil;
+import util.*;
 import util.sequential.LDATopicDetector;
 
 import javax.ws.rs.core.MultivaluedHashMap;
@@ -25,6 +23,8 @@ import java.util.*;
 public class QuadManagerImpl implements IQuadManager{
 
     static final Logger logger = Logger.getLogger(QuadManagerImpl.class);
+
+    protected ITopicDetector topicDetector;
 
     protected static final String DATABASE_NAME = "morphia_test";
 
@@ -67,7 +67,8 @@ public class QuadManagerImpl implements IQuadManager{
         quadDataStore = morphia.createDatastore(mongoClient, DATABASE_NAME);
         logger.info("QuadManagerImpl initialized");
     }
-    public QuadManagerImpl(){
+    public QuadManagerImpl(ITopicDetector topicDetector){
+        this.topicDetector = topicDetector;
     }
 
     /**
@@ -293,7 +294,7 @@ public class QuadManagerImpl implements IQuadManager{
         URLs = mongoDatabase.getCollection(URL_COLLECTION);
         int nSameQuadGeohash = 0;
         int m = 0;
-            try (MongoCursor<Document> cur = URLs.find().iterator()) {
+            try (MongoCursor<Document> cur = URLs.find().noCursorTimeout(true).iterator()) {
                 while (cur.hasNext()) {
                     Document d = cur.next();
                     // try to access saved locally urls
@@ -352,15 +353,40 @@ public class QuadManagerImpl implements IQuadManager{
         catch (Exception e){
             logger.error(e.getMessage());
             logger.error("partitionUrls interrupted by mongodb error!");
-        } finally {
-                mongoClient.close();
         }
     }
 
 
+    public void displayTopics(Location topLeft, Location bottomRight, int S, String method){
+        List<Quad> quads = null;
+        if ( method.equals("custom")){
+            quads = getTopics(topLeft, bottomRight, S);
+        }
+        else if( method.equals("rerun")){
+            quads = getTopicsByRerun(topLeft, bottomRight, S);
+        }
+        int i = 0;
+        for(Quad quad: quads) {
+            StringBuilder str = new StringBuilder();
+            //54.15626787405963, -58.88163421912802 {quad id} <green>
+            //39.8338819223521, -42.15296783993988 {quad id 2} <default>
+            str.append(quad.getTopleft().getLatitude() + ", " + quad.getTopleft().getLongitude());
+            str.append(" {quad id: " + quad.getId() + " " + quad.getStats()+ "} <"+ Util.getColour(i)+"> \n");
+            str.append(quad.calcTopRight().getLatitude() + ", " + quad.calcTopRight().getLongitude());
+            str.append(" {quad id: " + quad.getId() + " " + quad.getStats()+ "} <"+ Util.getColour(i)+"> \n");
+            str.append(quad.getBottomright().getLatitude() + ", " + quad.getBottomright().getLongitude());
+            str.append(" {quad id: " + quad.getId() + " " + quad.getStats() + "} <"+ Util.getColour(i)+"> \n");
+            str.append(quad.calcBottomLeft().getLatitude() + ", " + quad.calcBottomLeft().getLongitude());
+            str.append(" {quad id: " + quad.getId() + " " + quad.getStats() + "} <"+ Util.getColour(i)+"> \n");
+//            if (quad.getId() < 25) {
+                System.out.println(str.toString());
+//            }
+            i++;
+        }
+    }
+
     @Override
-    //TODO: change signature of the function from hashtable to ...
-    public Hashtable<Long, String> getTopics(Location topLeft, Location bottomRight, int S) {
+    public List<Quad> getTopics(Location topLeft, Location bottomRight, int S) {
         int qSide = GeolocationUtil.getQuadSideClosestToGivenStep(S);
         int level = GeolocationUtil.getLevel(qSide);
         if (qSide < Quad.QUAD_SIDE_MIN){
@@ -380,23 +406,18 @@ public class QuadManagerImpl implements IQuadManager{
             level--;
         }
         Quad topQuad = getQuadById(topQuadId);
-//        System.out.println(topQuad);
         Location bottomLeft = new Location(bottomRight.getLatitude(), topLeft.getLongitude());
         double height = GeolocationUtil.calculateDistance(topLeft, bottomLeft);
         Location topRight = new Location(topLeft.getLatitude(), bottomRight.getLongitude());
         double width = GeolocationUtil.calculateDistance(topLeft, topRight);
-        //TODO: continue from here
         int widthInQuads = (int) width / qSide;
         int heightInQuads = (int) height / qSide;
-        int nDiagonal = 5; //(int)(distanceToBottomRight / Quad.QUAD_DIAGONAL);
         List<Quad> quadsInsideGivenArea = getQuadsInsideGivenArea(topQuad, widthInQuads, heightInQuads);
-//        logger.info(topQuad);
         for(Quad q: quadsInsideGivenArea) {
             calculateStatsForQuad(q, qSide);
-            //TODO:on the current top level too many values - how to select only top-n for viewving?
 
         }
-        return null;
+        return quadsInsideGivenArea;
     }
 
     public static Quad getQuadById(long quadId) {
@@ -406,11 +427,16 @@ public class QuadManagerImpl implements IQuadManager{
         return queryQuad.asList().get(0);
     }
 
+    public static List<Quad> getQuadByFilter(String paramFilter, Object value) {
+        Query<Quad> queryQuad;
+        queryQuad = quadDataStore
+                .createQuery(Quad.class).filter(paramFilter, value);
+        return queryQuad.asList();
+    }
 
     private void calculateStatsForQuad(Quad quad, int qSide) {
         // if current quad side is the minimal one, so no quads inside this
         if (quad.getqSide() == Quad.QUAD_SIDE_MIN) {
-            logger.info(quad);
             return;
         }
         //get quads inside current
@@ -419,32 +445,25 @@ public class QuadManagerImpl implements IQuadManager{
             calculateStatsForQuad(q, qSide);
         }
         //calculate stats by smart aggregation of stats on previous levels
-        Hashtable<String, Integer> table = computeStatsAggregation(quadsInsideCurrent);
+        if ( quad.getStats() == null) {
+            Hashtable<String, Integer> table = TopicAggregation
+                            .computeStatsAggregation(quadsInsideCurrent);
 //        for(Quad q: quadsInsideCurrent) {
 //            if(q.getStats() != null) {
 //                q.getStats().forEach((k,v) -> table.merge(k, v, (v1,v2) -> v1 + v2));
 //            }
 //        }
-        if( !table.isEmpty()) {
-            quad.setStats(table);
-            logger.info(quad);
-            quadDataStore.save(quad);
-        }
-    }
-
-    private Hashtable<String, Integer> computeStatsAggregation(List<Quad> quads) {
-        Hashtable<String, Integer> result = new Hashtable<>();
-
-        for(Quad q: quads){
-            Hashtable<String, Integer> stats = q.getStats();
-            for(String t: stats.keySet()){
-
+            if (table != null && !table.isEmpty()) {
+                quad.setStats(table);
+                try {
+                    quadDataStore.save(quad);
+                }catch (Exception e){
+                    logger.error(e.getMessage());
+                }
             }
         }
-//        int nQuadsInCommon = getNumberQuadsInCommon(quads);
-//        float geoPointRation = getGeoPointRation(quads);
-        return null;
     }
+
 
     /**
      * Select from database only those quads, that is inside given but less
@@ -506,9 +525,8 @@ public class QuadManagerImpl implements IQuadManager{
             try {
                 int urlSize = q.getUrls().size();
                 nUrls += urlSize;
-//                logger.info("Number of urls:" + Integer.toString(urlSize) + " quad id: " + q.getId());
-//                q.setStats(LDATopicDetector.getTopicStatsByUrls(q.getUrls(),
-//                                            HtmlUtil.PAGE_TYPE.URL_LOCATION));
+                q.setStats(topicDetector.getTopicStatsByUrls(q.getUrls(),
+                                            HtmlUtil.PAGE_TYPE.BODY));
                 quadDataStore.save(q);
             }catch (Exception e){
                 logger.error("Unable to detect topics!");
@@ -529,9 +547,8 @@ public class QuadManagerImpl implements IQuadManager{
      * computing topics stats for smallest quads, directly compute stats for
      * urls inside quads.
      */
-    //TODO: ВСЬО ПЕРЕПИСАТИ НАХУЙ
-    public Hashtable<Quad, Set<String>> getTopicsByRerun(
-            Location topleft, double distanceToBottomRight, int S){
+    public List<Quad> getTopicsByRerun(
+            Location topleft, Location bottomRight, int S){
         int qSide = GeolocationUtil.getQuadSideClosestToGivenStep(S);
         int level = GeolocationUtil.getLevel(qSide);
         if (qSide < Quad.QUAD_SIDE_MIN){
@@ -550,26 +567,26 @@ public class QuadManagerImpl implements IQuadManager{
             topQuadId /= 10;
             level--;
         }
-        queryQuad = quadDataStore
-                .createQuery(Quad.class).filter("qId ==", topQuadId);
-        Quad topQuad = queryQuad.asList().get(0);
-        System.out.println(topQuad);
-        //how many quads on a diagonal
-        int nDiagonal = (int)(distanceToBottomRight / Quad.QUAD_DIAGONAL);
-        List<Quad> quadsInsideGivenArea = null; //getQuadsInsideGivenArea(topQuad, widthInQuads, nDiagonal);
-        Hashtable<Quad, Set<String>> result = new Hashtable<>();
+        Quad topQuad = getQuadById(topQuadId);
+        Location bottomLeft = new Location(bottomRight.getLatitude(), topleft.getLongitude());
+        double height = GeolocationUtil.calculateDistance(topleft, bottomLeft);
+        Location topRight = new Location(topleft.getLatitude(), bottomRight.getLongitude());
+        double width = GeolocationUtil.calculateDistance(topleft, topRight);
+        int widthInQuads = (int) width / qSide;
+        int heightInQuads = (int) height / qSide;
+        List<Quad> quadsInsideGivenArea = getQuadsInsideGivenArea(topQuad, widthInQuads, heightInQuads);
         int nUrls = 0;
-        for(Quad q: quadsInsideGivenArea) {
-            List<String> urlsInsideQuad = getAllUrlsInsideQuad(q);
+        for(int j = 0; j < quadsInsideGivenArea.size(); j++) {
+            List<String> urlsInsideQuad = getAllUrlsInsideQuad(quadsInsideGivenArea.get(j));
             int size = urlsInsideQuad.size();
             logger.info("Number of urlsInsideQuad: " +
                     Integer.toString(size ));
             nUrls += size;
             for (int i = 0; i < size; i++){
                 try {
-                    result.put(q, LDATopicDetector
+                    quadsInsideGivenArea.get(j).setStats(topicDetector
                             .getTopicStatsByUrls(urlsInsideQuad,
-                                    HtmlUtil.PAGE_TYPE.URL_LOCATION).keySet());//TODO: add weights
+                                    HtmlUtil.PAGE_TYPE.BODY));
                 }catch (Exception e){
                     logger.error("Unable to detect topics!");
                     logger.error(e.getMessage());
@@ -578,13 +595,13 @@ public class QuadManagerImpl implements IQuadManager{
         }
         logger.info("Average number of urls in quad: " +
                 Integer.toString(nUrls / quadsInsideGivenArea.size()));
-        return result;
+        return quadsInsideGivenArea;
     }
 
 
     private List<String> getAllUrlsInsideQuad(Quad quad) {
         if (quad.getqSide() == Quad.QUAD_SIDE_MIN)
-            return null;
+            return quad.getUrls();
         //get quads inside current
         List<Quad> quadsInsideCurrent = getQuadsInsideQuad(quad.getId());
         //recursively get quads urls

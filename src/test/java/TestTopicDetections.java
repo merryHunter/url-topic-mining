@@ -6,6 +6,7 @@ import detection.Location;
 import detection.QuadManagerImpl;
 import smile.data.SparseDataset;
 import util.HtmlUtil;
+import util.sequential.BagOfWordsTopicDetector;
 import util.sequential.CountVectorizer;
 import org.junit.Test;
 
@@ -21,6 +22,7 @@ import org.bson.Document;
 
 import com.mongodb.spark.MongoSpark;
 import com.mongodb.spark.rdd.api.java.JavaMongoRDD;
+import util.sequential.LDATopicDetector;
 
 /**
  * @author Ivan Chernukha on 12.02.17.
@@ -54,23 +56,24 @@ public class TestTopicDetections {
 
     @Test
     public void onTestPrecomputingGetTopics(){
-        QuadManagerImpl quadManager = new QuadManagerImpl();
+        QuadManagerImpl quadManager = new QuadManagerImpl( new LDATopicDetector());
+//        QuadManagerImpl quadManager = new QuadManagerImpl( new BagOfWordsTopicDetector());
         quadManager.partitionMapIntoQuads(
-                new Location(46.498606, 11.35204), new Location(0.0,0.0), 2);
-//        quadManager.partitionUrls();
-//        quadManager.computeTopicStatsSmallestQuads();
+                new Location(47.185257, 8.206737), new Location(0.0,0.0), 2);
+        quadManager.partitionUrls();
+        quadManager.computeTopicStatsSmallestQuads();
     }
 
     @Test
     public void onTestGetTopics(){
-        QuadManagerImpl quadManager = new QuadManagerImpl();
-        quadManager.getTopics(new Location(46.064322, 11.123587),
-                new Location(43.171934, 18.449864), 36);
+        QuadManagerImpl quadManager = new QuadManagerImpl(new LDATopicDetector());
+        quadManager.displayTopics(new Location(46.064322, 11.123587),
+                new Location(43.171934, 18.449864), 36, "custom");
     }
 
     @Test
     public void onTestPrecomputingGetTopicsByRerun(){
-        QuadManagerImpl quadManager = new QuadManagerImpl();
+        QuadManagerImpl quadManager = new QuadManagerImpl(new LDATopicDetector());
         quadManager.partitionMapIntoQuads(
                 new Location(47.185257, 8.206737), new Location(0.0,0.0), 2);
         quadManager.partitionUrls();
@@ -78,8 +81,9 @@ public class TestTopicDetections {
 
     @Test
     public void onTestGetTopicsByRerun(){
-        QuadManagerImpl quadManager = new QuadManagerImpl();
-        quadManager.getTopicsByRerun(new Location(46.064322, 11.123587), 1.0d, 44);
+        QuadManagerImpl quadManager = new QuadManagerImpl(new LDATopicDetector());
+        quadManager.displayTopics(new Location(46.064322, 11.123587),
+                new Location(43.171934, 18.449864), 36, "rerun");
     }
 
     @Test

@@ -12,6 +12,7 @@ import org.mongodb.morphia.Morphia;
 import org.mongodb.morphia.query.Query;
 import util.GeolocationUtil;
 import util.MongoUtil;
+import util.sequential.LDATopicDetector;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -60,7 +61,7 @@ public class TestQuadManagerImpl {
     private Datastore quadDataStore;
     @Test
     public void onTestMapPartition(){
-        QuadManagerImpl quadManager =  new QuadManagerImpl();
+        QuadManagerImpl quadManager =  new QuadManagerImpl(new LDATopicDetector());
 //        quadManager.partitionMapIntoQuads(
 //                new Location(46.049945, 11.121257), new Location(0.0,0.0), 2);
 //        quadManager.partitionMapIntoQuads(
@@ -78,10 +79,31 @@ public class TestQuadManagerImpl {
     }
 
     @Test
-    public void testGeoutil() {
+    public void testGeoutil() throws Exception{
 //        Location wtf = GeolocationUtil.old_getNewLocation(2.834115, 13.796509, 135,    2896.3097);
-        System.out.println("Petro");
-
+        List<Quad> quadList = QuadManagerImpl.getQuadByFilter("urls exists", true);
+        File f = new File("out.txt");
+        f.createNewFile();
+        fop = new FileOutputStream(f);
+        int i = 0;
+        for(Quad quad: quadList) {
+            StringBuilder str = new StringBuilder();
+            //54.15626787405963, -58.88163421912802 {quad id} <green>
+            //39.8338819223521, -42.15296783993988 {quad id 2} <default>
+            str.append(quad.getTopleft().getLatitude() + ", " + quad.getTopleft().getLongitude());
+            str.append(" {quad id: " + quad.getId() + " " + quad.getStats() + "} <"+ getColour(i)+"> \n");
+            str.append(quad.calcTopRight().getLatitude() + ", " + quad.calcTopRight().getLongitude());
+            str.append(" {quad id: " + quad.getId() + " " + quad.getStats() + "} <"+ getColour(i)+"> \n");
+            str.append(quad.getBottomright().getLatitude() + ", " + quad.getBottomright().getLongitude());
+            str.append(" {quad id: " + quad.getId() + " " + quad.getStats() + "} <"+ getColour(i)+"> \n");
+            str.append(quad.calcBottomLeft().getLatitude() + ", " + quad.calcBottomLeft().getLongitude());
+            str.append(" {quad id: " + quad.getId() + " " + quad.getStats() + "} <"+ getColour(i)+"> \n");
+//            if (quad.getId() < 25) {
+                fop.write(str.toString().getBytes());
+//            }
+            i++;
+        }
+        fop.close();
     }
 
     @Test

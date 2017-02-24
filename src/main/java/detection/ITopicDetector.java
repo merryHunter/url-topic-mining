@@ -5,13 +5,14 @@
 package detection;
 
 
+import util.HtmlUtil;
+
 import java.util.Hashtable;
 import java.util.List;
 
 public interface ITopicDetector {
 
-    Hashtable<String, Integer> getTopicStatsByQuad(Quad q);
-
-    List<String> getTopics(Location topleft, Location bottomright, int S);
+    public Hashtable<String, Integer> getTopicStatsByUrls(
+            List<String> urls, HtmlUtil.PAGE_TYPE page_type) throws Exception;
 
 }

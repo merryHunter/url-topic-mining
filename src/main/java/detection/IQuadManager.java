@@ -3,10 +3,6 @@
  */
 package detection;
 
-import org.bson.types.ObjectId;
-
-import javax.ws.rs.core.MultivaluedHashMap;
-import java.util.Hashtable;
 import java.util.List;
 
 public interface IQuadManager {
@@ -21,7 +17,7 @@ public interface IQuadManager {
     /** Partition URLs over all quads. */
     void partitionUrls();
 
-    Hashtable<Long, String> getTopics(Location topLeft, Location bottomRight, int S);
+    List<Quad> getTopics(Location topLeft, Location bottomRight, int S);
 
     void computeTopicStatsSmallestQuads();
 }

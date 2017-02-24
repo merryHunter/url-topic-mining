@@ -39,4 +39,32 @@ public class Util {
         }
         return result;
     }
+
+    public static String getColour(int i) {
+        switch (i%7) {
+            case 0: {
+                return "default";
+            }
+            case 1: {
+                return "green";
+            }
+            case 2: {
+                return "pink";
+            }
+            case 3: {
+                return "blue";
+            }
+            case 4: {
+                return "tan";
+            }
+            case 5: {
+                return "gray";
+            }
+            case 6: {
+                return "yellow";
+            }
+        }
+        return "default";
+    }
+
 }

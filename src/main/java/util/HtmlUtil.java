@@ -105,7 +105,7 @@ public class HtmlUtil {
         } catch (Exception e){
             logger.error("Could not open file with url: " + url);
         }
-        return html;
+        return html.toLowerCase();
     }
 
     private static void saveToFile(String html, String url) {
@@ -202,6 +202,10 @@ public class HtmlUtil {
     }
 
     private static boolean urlLocationValid(String url) {
+        if (new File(DIRECTORY, Integer.toString(url.hashCode()) + ".txt")
+                .exists()) {
+            return false;
+        }
         if ( url.length() < 15 ){
             return false;
         }

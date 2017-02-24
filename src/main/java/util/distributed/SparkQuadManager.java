@@ -5,6 +5,7 @@ package util.distributed;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
+import detection.ITopicDetector;
 import detection.Quad;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
@@ -28,6 +29,10 @@ public class SparkQuadManager {
 
     private static final String DATABASE_NAME = "morphia_test";
 
+    private static final String method = "tf-idf";
+
+    private static final ITopicDetector topicDetector = new LDATopicDetector();
+
     public static void main(String[] args) {
         SparkConf conf = new SparkConf()
                 .setAppName("UrlMining")
@@ -50,7 +55,7 @@ public class SparkQuadManager {
         JavaRDD<Quad> computedQuadTopics = quadRdd.map(new Function<Quad, Quad>() {
             @Override
             public Quad call(Quad q) throws Exception {
-                q.setStats(LDATopicDetector.getTopicStatsByUrls(q.getUrls(),
+                q.setStats(topicDetector.getTopicStatsByUrls(q.getUrls(),
                                             HtmlUtil.PAGE_TYPE.BODY));
                 return q;
             }

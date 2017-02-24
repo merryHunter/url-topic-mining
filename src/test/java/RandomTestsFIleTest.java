@@ -1,4 +1,5 @@
 import com.mongodb.MongoClient;
+import com.mongodb.MongoCursorNotFoundException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
@@ -33,7 +34,7 @@ import static org.junit.Assert.*;
  */
 public class RandomTestsFIleTest {
 
-    private static final Logger logger = Logger.getLogger(RandomTestsFIle.class);
+    private static final Logger logger = Logger.getLogger(RandomTestsFIleTest.class);
 
     @Test
     public void test_method_1() {
@@ -307,19 +308,26 @@ public class RandomTestsFIleTest {
         MongoUtil.getOrCreateMongoClient();
         MongoDatabase mongoDatabase = MongoUtil.getDatabase("morphia_test");
         MongoCollection<Document> col = mongoDatabase.getCollection("output");
-        try (MongoCursor<Document> cur = col.find().iterator()) {
-            while (cur.hasNext()) {
-                Document d = cur.next();
-                try {
-                    HtmlUtil.preprocessURLsToFindHtmlPages(
-                            Arrays.asList(((String) d.get("urls")).split("\\|")));
-                } catch (Exception e){
 
+        try (MongoCursor<Document> cur = col.find().noCursorTimeout(true).iterator()) {
+            try {
+                while (cur.hasNext()) {
+                    Document d = cur.next();
+                    try {
+                        HtmlUtil.preprocessURLsToFindHtmlPages(
+                                Arrays.asList(((String) d.get("urls")).split("\\|")));
+                    } catch (Exception e) {
+
+                    }
+                    c++;
+                    if (c % 1000 == 0) {
+                        logger.info("preprocessedurls:" + c);
+                    }
                 }
-                c++;
-                if (c % 1000 == 0){
-                    logger.info("preprocessedurls:" + c);
-                }
+            }catch (MongoCursorNotFoundException e1){
+                logger.error(e1.getMessage());
+            } catch (Exception e){
+                logger.error(e.getMessage());
             }
         }
     }

@@ -141,15 +141,15 @@ public class DistributedQuadManagerMongo {
                     @Override
                     public Row call(Row row) throws Exception {
                         List<String> urls =  row.getList(row.size() - 1);
-                        Hashtable<String, Integer> topicStats = LDATopicDetector
-                                .getTopicStatsByUrls(urls, HtmlUtil.PAGE_TYPE.URL_LOCATION);
-                        String json = new Gson().toJson(topicStats);
-
+//                        Hashtable<String, Integer> topicStats =
+//                                .getTopicStatsByUrls(urls, HtmlUtil.PAGE_TYPE.URL_LOCATION);
+//                        String json = new Gson().toJson(topicStats);
+//
 //                        Document doc = Document.parse(json);
 //                        doc.append("qId", row.getLong(4));// qId
 //                        doc.append("stats", topicStats);
-                        Row r =  RowFactory.create(row.getLong(4), topicStats); //4 поле - qId
-                        return r;
+//                        Row r =  RowFactory.create(row.getLong(4), topicStats); //4 поле - qId
+                        return null;
                     }
                 });
         return computedDS;
