@@ -58,17 +58,19 @@ public class TestTopicDetections {
     public void onTestPrecomputingGetTopics(){
         QuadManagerImpl quadManager = new QuadManagerImpl( new LDATopicDetector());
 //        QuadManagerImpl quadManager = new QuadManagerImpl( new BagOfWordsTopicDetector());
-        quadManager.partitionMapIntoQuads(
-                new Location(47.185257, 8.206737), new Location(0.0,0.0), 2);
-        quadManager.partitionUrls();
+//        quadManager.partitionMapIntoQuads(
+//                new Location(47.185257, 8.206737), new Location(0.0,0.0), 2);
+//        quadManager.partitionUrls();
         quadManager.computeTopicStatsSmallestQuads();
     }
 
     @Test
     public void onTestGetTopics(){
         QuadManagerImpl quadManager = new QuadManagerImpl(new LDATopicDetector());
+//        quadManager.computeTopicStatsSmallestQuads();
+
         quadManager.displayTopics(new Location(46.064322, 11.123587),
-                new Location(43.171934, 18.449864), 36, "custom");
+                new Location(43.171934, 18.449864), 570, "custom");
     }
 
     @Test
@@ -83,7 +85,7 @@ public class TestTopicDetections {
     public void onTestGetTopicsByRerun(){
         QuadManagerImpl quadManager = new QuadManagerImpl(new LDATopicDetector());
         quadManager.displayTopics(new Location(46.064322, 11.123587),
-                new Location(43.171934, 18.449864), 36, "rerun");
+                new Location(43.171934, 18.449864), 570, "rerun");
     }
 
     @Test

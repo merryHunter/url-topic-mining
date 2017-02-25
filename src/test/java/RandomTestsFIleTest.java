@@ -77,8 +77,47 @@ public class RandomTestsFIleTest {
                 "learning\t1\n" +
                 "machine\t1\n" +
                 "extraction\t1\n";
-        Matcher m = Pattern.compile("\\n(([a-z]*)\\t)").matcher(x);
-        Matcher counts = Pattern.compile("\\t(([0-9]*)\\n)").matcher(x);
+        String x1 = "0\t0.16667\n" +
+                "theatrical\t65\n" +
+                "anniversary\t63\n" +
+                "encounters\t62\n" +
+                "sony\t61\n" +
+                "part\t48\n" +
+                "1\t0.16667\n" +
+                "cec\t25\n" +
+                "reference\t24\n" +
+                "eurosport\t24\n" +
+                "tim\t24\n" +
+                "offerta\t24\n" +
+                "2\t0.16667\n" +
+                "incontri\t26\n" +
+                "l'utente\t16\n" +
+                "bakecaincontrii\t16\n" +
+                "doppiaggio\t9\n" +
+                "italiano\t9\n" +
+                "3\t0.16667\n" +
+                "english\t86\n" +
+                "entertainment\t81\n" +
+                "case\t54\n" +
+                "collector's\t41\n" +
+                "trailer\t40\n" +
+                "4\t0.16667\n" +
+                "dvd\t37\n" +
+                "ravvicinati\t26\n" +
+                "spielberg\t9\n" +
+                "versioni\t6\n" +
+                "confini\t6\n" +
+                "5\t0.16667\n" +
+                "stills\t351\n" +
+                "roy\t41\n" +
+                "version\t32\n" +
+                "english\t31\n" +
+                "neary\t27\n";
+        String x2 = "0\t0.16667\n" +
+                "theatrical\t65\n" +
+                "anniversary\t63\n";
+        Matcher m = Pattern.compile("\\n(([a-z]*(')?[a-z]*)\\t)").matcher(x1);
+        Matcher counts = Pattern.compile("\\t(([0-9]*)\\n)").matcher(x1);
         List<String> topics = new LinkedList<>();
         Hashtable<String, Integer> table = new Hashtable<>();
         while(m.find() && counts.find()) {

@@ -370,17 +370,19 @@ public class QuadManagerImpl implements IQuadManager{
             StringBuilder str = new StringBuilder();
             //54.15626787405963, -58.88163421912802 {quad id} <green>
             //39.8338819223521, -42.15296783993988 {quad id 2} <default>
-            str.append(quad.getTopleft().getLatitude() + ", " + quad.getTopleft().getLongitude());
-            str.append(" {quad id: " + quad.getId() + " " + quad.getStats()+ "} <"+ Util.getColour(i)+"> \n");
-            str.append(quad.calcTopRight().getLatitude() + ", " + quad.calcTopRight().getLongitude());
-            str.append(" {quad id: " + quad.getId() + " " + quad.getStats()+ "} <"+ Util.getColour(i)+"> \n");
-            str.append(quad.getBottomright().getLatitude() + ", " + quad.getBottomright().getLongitude());
-            str.append(" {quad id: " + quad.getId() + " " + quad.getStats() + "} <"+ Util.getColour(i)+"> \n");
-            str.append(quad.calcBottomLeft().getLatitude() + ", " + quad.calcBottomLeft().getLongitude());
-            str.append(" {quad id: " + quad.getId() + " " + quad.getStats() + "} <"+ Util.getColour(i)+"> \n");
+            if(quad.getStats() != null) {
+                str.append(quad.getTopleft().getLatitude() + ", " + quad.getTopleft().getLongitude());
+                str.append(" {quad id: " + quad.getId() + " " + quad.getStats() + "} <" + Util.getColour(i) + "> \n");
+                str.append(quad.calcTopRight().getLatitude() + ", " + quad.calcTopRight().getLongitude());
+                str.append(" {quad id: " + quad.getId() + " " + quad.getStats() + "} <" + Util.getColour(i) + "> \n");
+                str.append(quad.getBottomright().getLatitude() + ", " + quad.getBottomright().getLongitude());
+                str.append(" {quad id: " + quad.getId() + " " + quad.getStats() + "} <" + Util.getColour(i) + "> \n");
+                str.append(quad.calcBottomLeft().getLatitude() + ", " + quad.calcBottomLeft().getLongitude());
+                str.append(" {quad id: " + quad.getId() + " " + quad.getStats() + "} <" + Util.getColour(i) + "> \n");
 //            if (quad.getId() < 25) {
                 System.out.println(str.toString());
 //            }
+            }
             i++;
         }
     }
@@ -391,7 +393,8 @@ public class QuadManagerImpl implements IQuadManager{
         int level = GeolocationUtil.getLevel(qSide);
         if (qSide < Quad.QUAD_SIDE_MIN){
             //TODO:
-            return null;
+            qSide = Quad.QUAD_SIDE_MIN;
+//            return null;
         }
         String geoHashTopLeft = GeoHash.geoHashStringWithCharacterPrecision(
                                     topLeft.getLatitude(),
@@ -413,10 +416,11 @@ public class QuadManagerImpl implements IQuadManager{
         int widthInQuads = (int) width / qSide;
         int heightInQuads = (int) height / qSide;
         List<Quad> quadsInsideGivenArea = getQuadsInsideGivenArea(topQuad, widthInQuads, heightInQuads);
-        for(Quad q: quadsInsideGivenArea) {
-            calculateStatsForQuad(q, qSide);
-
+        for(int i = 0; i < quadsInsideGivenArea.size(); i++) {
+            calculateStatsForQuad(quadsInsideGivenArea.get(0), qSide);
         }
+        //re-retrieve from database saved quads
+//        return getQuadsInsideGivenArea(topQuad, widthInQuads, heightInQuads);
         return quadsInsideGivenArea;
     }
 
@@ -553,7 +557,8 @@ public class QuadManagerImpl implements IQuadManager{
         int level = GeolocationUtil.getLevel(qSide);
         if (qSide < Quad.QUAD_SIDE_MIN){
             //TODO:
-            return null;
+            qSide = Quad.QUAD_SIDE_MIN;
+//            return null;
         }
         String geoHashTopLeft = GeoHash.geoHashStringWithCharacterPrecision(
                 topleft.getLatitude(),
@@ -563,7 +568,7 @@ public class QuadManagerImpl implements IQuadManager{
                 .createQuery(Quad.class).filter("geoHash ==", geoHashTopLeft);
         Quad quadTopLeft = queryQuad.asList().get(0);
         long topQuadId = quadTopLeft.getId();
-        while(level > 3) {          // 2^3 == 8 == QUAD.QUAD_SIDE_MIN
+        while(level > 4) {          // 2^3 == 8 == QUAD.QUAD_SIDE_MIN
             topQuadId /= 10;
             level--;
         }
@@ -582,15 +587,13 @@ public class QuadManagerImpl implements IQuadManager{
             logger.info("Number of urlsInsideQuad: " +
                     Integer.toString(size ));
             nUrls += size;
-            for (int i = 0; i < size; i++){
-                try {
-                    quadsInsideGivenArea.get(j).setStats(topicDetector
-                            .getTopicStatsByUrls(urlsInsideQuad,
-                                    HtmlUtil.PAGE_TYPE.BODY));
-                }catch (Exception e){
-                    logger.error("Unable to detect topics!");
-                    logger.error(e.getMessage());
-                }
+            try {
+                quadsInsideGivenArea.get(j).setStats(topicDetector
+                        .getTopicStatsByUrls(urlsInsideQuad,
+                                HtmlUtil.PAGE_TYPE.BODY));
+            }catch (Exception e){
+                logger.error("Unable to detect topics!");
+                logger.error(e.getMessage());
             }
         }
         logger.info("Average number of urls in quad: " +

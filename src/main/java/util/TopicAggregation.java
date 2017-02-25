@@ -17,8 +17,8 @@ public class TopicAggregation {
     private static final int c = 10;
     private static final int d = 10;
 
-    private static final int MIN_RATING = 1;
-    private static final int MAX_RATING = 100;
+    private static final float MIN_RATING = 1.0f;
+    private static final float MAX_RATING = 100.0f;
 
     public static Hashtable<String, Integer> computeStatsAggregation(List<Quad> quads) {
         Hashtable<String, Float> newRatings = new Hashtable<>();
@@ -28,8 +28,9 @@ public class TopicAggregation {
             Hashtable<String, Integer> stats = quads.get(i).getStats();
             try {
                 if(stats != null && !stats.isEmpty()) {
+//                    logger.info(stats);
                     for (String t : stats.keySet()) {
-                        newRatings.put(t, stats.get(t) + a * par[i][0] + b * par[i][1] + c * par[i][2] + d * par[i][3]);
+                        newRatings.put(t,2 * stats.get(t) + c * par[i][2] + d * par[i][3]);
                     }
                 }
             }catch (Exception e){
@@ -37,6 +38,7 @@ public class TopicAggregation {
             }
         }
         if(!newRatings.isEmpty()) {
+//            logger.info(newRatings);
             return getRescaledValues(newRatings);
         }
         return null;
@@ -48,10 +50,11 @@ public class TopicAggregation {
         Hashtable<String, Integer> result = new Hashtable<>();
         for ( String s: ratings.keySet()){
             result.put(s, (int) (
-                    ((r_max - r_min) / (MAX_RATING - MIN_RATING)) *
+                    ((MAX_RATING - MIN_RATING) / (r_max - r_min)  ) *
                             (ratings.get(s) - r_max) + MAX_RATING
                     ));
         }
+//        logger.info(result);
         return result;
     }
 
@@ -65,8 +68,8 @@ public class TopicAggregation {
         for(int i = 0; i < quads.size(); i++){
             nUrls[i] =quads.get(i).getUrls().size();
             nGeoPoints[i] = quads.get(i).getGeoPoints();//initialized with 0
-            result[0][i] = (float)  nUrls[i];
-            result[1][i] = (float) nGeoPoints[i];
+            result[i][0] = (float)  nUrls[i];
+            result[i][1] = (float) nGeoPoints[i];
         }
         IntSummaryStatistics staturl = Arrays.stream(nUrls).summaryStatistics();
         IntSummaryStatistics statgeopoints = Arrays.stream(nGeoPoints).summaryStatistics();
@@ -75,8 +78,8 @@ public class TopicAggregation {
             urlsRation[i] = (float)(nUrls[i] - staturl.getMin()  ) / (staturl.getMax() - staturl.getMin() + 1);
             geoPointRatio[i] = (float)(nGeoPoints[i] - statgeopoints.getMin()  ) /
                     (statgeopoints.getMax() - statgeopoints.getMin() + 1);//avoid null division!
-            result[2][i] = urlsRation[i];
-            result[3][i] = geoPointRatio[i];
+            result[i][2] = urlsRation[i];
+            result[i][3] = geoPointRatio[i];
         }
 
         return result;
