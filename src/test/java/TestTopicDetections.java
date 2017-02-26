@@ -102,19 +102,57 @@ public class TestTopicDetections {
     public void onTestMalletTopicDetection() throws IOException {
 
         List<String> htmlList = new LinkedList<>();
-        String[] urls = {"https://github.com/mimno/Mallet",
-        "https://docs.mongodb.com/manual/reference/mongo-shell/"};
+        String[] urls = {        "https://docs.mongodb.com/manual/reference/mongo-shell/"};
         for (String s : urls) {
             try {
 //                String html = LDATopicDetector.getRawText(s);
-                String html = HtmlUtil.getTitles(s);
+                String html = HtmlUtil.getRawText(s);
                 //TODO: ensure we do not add empty lines!
-                htmlList.add(html);
+//                htmlList.add(html);
             }catch (Exception e){
             }
         }
         ArrayList<Pipe> pipeList = new ArrayList<Pipe>();
-
+        String text = "\n" +
+                "\n" +
+                "Donald Trump’s first budget proposal will spare big social welfare programs such as social security and Medicare from cuts, the treasury secretary, Steven Mnuchin, said in an interview broadcast on Sunday.\n" +
+                "Analysis CPAC conservatives drink the Trump Kool-Aid, but who will pick up the tab?\n" +
+                "A once-fringe presidential candidate has turned his doubters into cheerleaders. But the spiritual and financial cost of Trumpism has yet to be tallied\n" +
+                "Read more\n" +
+                "\n" +
+                "Mnuchin said Trump would use his first address to Congress on Tuesday night to preview some elements of his sweeping plans to cut taxes for the middle class, simplify the tax system and make American companies more globally competitive with lower rates and changes to encourage manufacturing.\n" +
+                "\n" +
+                "Speaking on Fox News’ Sunday Morning Futures, Mnuchin, who has acknowledged that tax reform is his top policy priority, said the budget plan would not seek cuts to federal benefits programs known as “entitlements”.\n" +
+                "\n" +
+                "“We are not touching those now. So don’t expect to see that as part of this budget, OK,” Mnuchin said of the programs. “We are very focused on other aspects and that’s what’s very important to us. And that’s the president’s priority.”\n" +
+                "\n" +
+                "During the election campaign Trump promised not to cut social security, Medicare healthcare for seniors or Medicaid healthcare for the poor. Preservation of these programs, coupled with a middle-class tax cut, would aid the retirees and working-class Americans who make up a significant portion of Trump’s political base.\n" +
+                "\n" +
+                "Mnuchin said Trump “will be touching on tax reform” as part of his first state of the union speech to Congress.\n" +
+                "\n" +
+                "The plan will reduce the number of tax brackets for individuals and offer a “middle-income tax cut”, Mnuchin said. On the business side, Trump wants to “create a level playing field for US companies to be able to compete in the world”.\n" +
+                "\n" +
+                "Mnuchin said Trump was looking at a “reciprocal tax” that would help create more parity with other countries. Trump administration officials have complained that many countries charge value-added taxes on imports while exempting exports from taxation. The US mainly taxes corporate income.\n" +
+                "\n" +
+                "But Mnuchin again said he was only studying a House Republican border tax adjustment plan that would levy a 20% tax on imports to encourage more US-based production and exports. That plan aims to raise more than $1tn over a decade to offset lower tax rates for businesses.\n" +
+                "White House plan to hire more border agents raises vetting fear, ex-senior official says\n" +
+                "Read more\n" +
+                "\n" +
+                "“So let me just say this is something we are studying very carefully,” Mnuchin said. “There are certain aspects that the president likes about the concept of a border-adjusted tax, there are certain aspects that he’s very concerned about.”\n" +
+                "\n" +
+                "He added that the Trump administration would work with the House of Representatives and Senate to craft “a combined plan that takes the best of all of this when we bring it forward”.\n" +
+                "\n" +
+                "In a comment suggesting that Trump’s budget and tax plan may use aggressive revenue assumptions, Mnuchin said the administration “fundamentally believes in dynamic scoring” – a budget calculation method that assumes that a lower tax burden boosts revenues by encouraging economic activity.\n" +
+                "\n" +
+                "The Congressional Budget Office has previously used mainly “static” scoring methods that assume very conservative economic effects of budget and taxes.\n" +
+                "\n" +
+                "“If we make business taxes more competitive, people will do more business here and we’ll get more revenues,” Mnuchin said. “So although there may be an absolute lower rate, that doesn’t necessarily mean it’s a corresponding drop in revenues.”\n" +
+                "Since you’re here …\n" +
+                "\n" +
+                "… we’ve got a small favour to ask. More people are reading the Guardian than ever, but far fewer are paying for it. Advertising revenues across the media are falling fast. And unlike some other news organisations, we haven’t put up a paywall – we want to keep our journalism open to all. So you can see why we need to ask for your help. The Guardian’s independent, investigative journalism takes a lot of time, money and hard work to produce. But we do it because we believe our perspective matters – because it might well be your perspective, too.\n" +
+                "\n" +
+                "If everyone who reads our reporting, who likes it, helps to support it, our future would be much more secure.";
+        htmlList.add(text);
         // Pipes: lowercase, tokenize, remove stopwords, map to features
         pipeList.add( new CharSequenceLowercase() );
         pipeList.add( new CharSequence2TokenSequence(Pattern.compile("\\p{L}[\\p{L}\\p{P}]+\\p{L}")) );
