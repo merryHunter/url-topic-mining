@@ -11,7 +11,6 @@ import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Morphia;
 import org.mongodb.morphia.query.Query;
 import util.*;
-import util.sequential.LDATopicDetector;
 
 import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
@@ -82,12 +81,12 @@ public class QuadManagerImpl implements IQuadManager{
         int quadSide = 2048; //початковий розмір квадратіка
         //поки не кінець світу
         //створили the Daddy
-        TopLevelQuad firstQuad = new TopLevelQuad(topleft, quadSide);
+//        TopLevelQuad firstQuad = new TopLevelQuad(topleft, quadSide);
         /**
          * using the static variable topLevelQuadCount below to keep track of how many quads have already been named
          */
-        firstQuad.setId(QuadManagerImpl.topLevelQuadCount);
-        quadDataStore.save(firstQuad);
+//        firstQuad.setId(QuadManagerImpl.topLevelQuadCount);
+//        quadDataStore.save(firstQuad);
         recursivePartitionQuadIntoChildren(topleft, quadSide, QuadManagerImpl.topLevelQuadCount); //рекурсивно обробляємо дітей
         /**
          * new quad was created along with all it's kids (parent ID which relies on this variable won't be used anymore)
@@ -95,7 +94,7 @@ public class QuadManagerImpl implements IQuadManager{
         QuadManagerImpl.topLevelQuadCount++;
 
         /** начінаємо від того квада ходити в усі чотири сторони в рекурсивній функції */
-        recursiveTraverseTopLevelQuads(firstQuad);
+//        recursiveTraverseTopLevelQuads(firstQuad);
 
 
         //в цій верхній функції спробувати пройтися по всіх сусідах, і для кожного сусіда заходити в дітей.
@@ -360,10 +359,16 @@ public class QuadManagerImpl implements IQuadManager{
     public void displayTopics(Location topLeft, Location bottomRight, int S, String method){
         List<Quad> quads = null;
         if ( method.equals("custom")){
+            long start = System.nanoTime();
             quads = getTopics(topLeft, bottomRight, S);
+            long elapsed = System.nanoTime() - start;
+            System.out.println("gettopics Custom:" + elapsed + " Step:" + S +"\n"+ topLeft + bottomRight);
         }
         else if( method.equals("rerun")){
+            long start = System.nanoTime();
             quads = getTopicsByRerun(topLeft, bottomRight, S);
+            long elapsed = System.nanoTime() - start;
+            System.out.println("gettopics Rerunning:" + elapsed + " Step:" + S+ " \n" + topLeft + bottomRight);
         }
         int i = 0;
         for(Quad quad: quads) {
@@ -371,14 +376,17 @@ public class QuadManagerImpl implements IQuadManager{
             //54.15626787405963, -58.88163421912802 {quad id} <green>
             //39.8338819223521, -42.15296783993988 {quad id 2} <default>
             if(quad.getStats() != null) {
+                //TODO:!!!
+                List<Map.Entry<String, Integer>> topk = Util.findGreatest(quad.getStats(), GeolocationUtil.NUMBER_TOPIC_TO_VIEW);
+                Hashtable<String,Integer> top_n = Util.findGreaterThan(quad.getStats(), 90);
                 str.append(quad.getTopleft().getLatitude() + ", " + quad.getTopleft().getLongitude());
-                str.append(" {quad id: " + quad.getId() + " " + quad.getStats() + "} <" + Util.getColour(i) + "> \n");
+                str.append(" {quad id: " + quad.getId() + " " + topk + "} <" + Util.getColour(i) + "> \n");
                 str.append(quad.calcTopRight().getLatitude() + ", " + quad.calcTopRight().getLongitude());
-                str.append(" {quad id: " + quad.getId() + " " + quad.getStats() + "} <" + Util.getColour(i) + "> \n");
+                str.append(" {quad id: " + quad.getId() + " " + topk + "} <" + Util.getColour(i) + "> \n");
                 str.append(quad.getBottomright().getLatitude() + ", " + quad.getBottomright().getLongitude());
-                str.append(" {quad id: " + quad.getId() + " " + quad.getStats() + "} <" + Util.getColour(i) + "> \n");
+                str.append(" {quad id: " + quad.getId() + " " + topk + "} <" + Util.getColour(i) + "> \n");
                 str.append(quad.calcBottomLeft().getLatitude() + ", " + quad.calcBottomLeft().getLongitude());
-                str.append(" {quad id: " + quad.getId() + " " + quad.getStats() + "} <" + Util.getColour(i) + "> \n");
+                str.append(" {quad id: " + quad.getId() + " " + topk + "} <" + Util.getColour(i) + "> \n");
 //            if (quad.getId() < 25) {
                 System.out.println(str.toString());
 //            }
@@ -580,11 +588,13 @@ public class QuadManagerImpl implements IQuadManager{
         int widthInQuads = (int) width / qSide;
         int heightInQuads = (int) height / qSide;
         List<Quad> quadsInsideGivenArea = getQuadsInsideGivenArea(topQuad, widthInQuads, heightInQuads);
+        int nUrlsTotal = 0;
         int nUrls = 0;
         for(int j = 0; j < quadsInsideGivenArea.size(); j++) {
+            nUrls = 0;
             List<String> urlsInsideQuad = getAllUrlsInsideQuad(quadsInsideGivenArea.get(j));
             int size = urlsInsideQuad.size();
-            logger.info("Number of urlsInsideQuad: " +
+            logger.info("Number of urlsInsideQuad: "+  quadsInsideGivenArea.get(j).getqId() + " " +
                     Integer.toString(size ));
             nUrls += size;
             try {
@@ -595,9 +605,11 @@ public class QuadManagerImpl implements IQuadManager{
                 logger.error("Unable to detect topics!");
                 logger.error(e.getMessage());
             }
+            nUrlsTotal += nUrls;
         }
         logger.info("Average number of urls in quad: " +
-                Integer.toString(nUrls / quadsInsideGivenArea.size()));
+                Integer.toString(nUrlsTotal / quadsInsideGivenArea.size()));
+        logger.info("Urls inside: " + nUrlsTotal);
         return quadsInsideGivenArea;
     }
 
