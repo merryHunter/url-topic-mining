@@ -69,8 +69,8 @@ public class TestTopicDetections {
         QuadManagerImpl quadManager = new QuadManagerImpl(new LDATopicDetector());
 //        quadManager.computeTopicStatsSmallestQuads();
 
-        quadManager.displayTopics(new Location(46.064322, 11.123587),
-                new Location(43.171934, 18.449864), 570, "custom");
+        quadManager.displayTopics(new Location(47.185257, 8.206737),
+                new Location(43.171934, 18.449864), 150, "custom");
     }
 
     @Test
