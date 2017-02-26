@@ -4,6 +4,7 @@ import cc.mallet.topics.ParallelTopicModel;
 import cc.mallet.types.InstanceList;
 import detection.Location;
 import detection.QuadManagerImpl;
+import org.apache.log4j.Logger;
 import smile.data.SparseDataset;
 import util.HtmlUtil;
 import util.sequential.BagOfWordsTopicDetector;
@@ -29,7 +30,7 @@ import util.sequential.LDATopicDetector;
  */
 
 public class TestTopicDetections {
-
+    private static final Logger logger = Logger.getLogger(TestTopicDetections.class);
     @Test
     public void onTestSparkMongodbConnector() {
         SparkSession spark = SparkSession.builder()
@@ -58,10 +59,19 @@ public class TestTopicDetections {
     public void onTestPrecomputingGetTopics(){
         QuadManagerImpl quadManager = new QuadManagerImpl( new LDATopicDetector());
 //        QuadManagerImpl quadManager = new QuadManagerImpl( new BagOfWordsTopicDetector());
-//        quadManager.partitionMapIntoQuads(
-//                new Location(47.185257, 8.206737), new Location(0.0,0.0), 2);
-//        quadManager.partitionUrls();
+        long start = System.nanoTime();
+        quadManager.partitionMapIntoQuads(
+                new Location(47.185257, 8.206737), new Location(0.0,0.0), 2);
+        long partitionTime = System.nanoTime() - start;
+        start = System.nanoTime();
+        quadManager.partitionUrls();
+        long urlsTime = System.nanoTime() - start;
+        start = System.nanoTime();
         quadManager.computeTopicStatsSmallestQuads();
+        long smallest = System.nanoTime() - start;
+        logger.info("Time partitionMapIntoQuad qSide==2048: " + partitionTime);
+        logger.info("Time partitionUrls: " + urlsTime);//TODO:compare urls with synchronous?
+        logger.info("Time computeTopicsSmallest: " + smallest);
     }
 
     @Test

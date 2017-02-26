@@ -7,8 +7,24 @@ import java.util.*;
 
 public class Util {
 
-    public static <K, V extends Comparable<? super V>> List<Map.Entry<K, V>>
-    findGreatest(Map<K, V> map, int n)
+    /**
+     *
+     * @param table topic stats
+     * @param n minimum rating
+     * @return
+     */
+    public static Hashtable<String, Integer> findGreaterThan(Hashtable<String,Integer> table, int n){
+        Hashtable<String, Integer> results = new Hashtable<>();
+        for(String s:table.keySet()){
+            if (table.get(s) > n){
+                results.put(s, table.get(s));
+            }
+        }
+        return results;
+    }
+
+    public static <K, V extends Comparable<? super V>> List<Map.Entry<String, Integer>>
+    findGreatest(Hashtable<String, Integer> map, int n)
     {
         Comparator<? super Map.Entry<K, V>> comparator =
                 new Comparator<Map.Entry<K, V>>()
@@ -21,9 +37,9 @@ public class Util {
                         return v0.compareTo(v1);
                     }
                 };
-        PriorityQueue<Map.Entry<K, V>> highest =
-                new PriorityQueue<Map.Entry<K,V>>(n, comparator);
-        for (Map.Entry<K, V> entry : map.entrySet())
+        PriorityQueue<Map.Entry<String, Integer>> highest =
+                new PriorityQueue<Map.Entry<String, Integer>>(n, (Comparator<? super Map.Entry<String, Integer>>) comparator);
+        for (Map.Entry<String, Integer> entry : map.entrySet())
         {
             highest.offer(entry);
             while (highest.size() > n)
@@ -32,7 +48,7 @@ public class Util {
             }
         }
 
-        List<Map.Entry<K, V>> result = new ArrayList<Map.Entry<K,V>>();
+        List<Map.Entry<String, Integer>> result = new ArrayList<>();
         while (highest.size() > 0)
         {
             result.add(highest.poll());

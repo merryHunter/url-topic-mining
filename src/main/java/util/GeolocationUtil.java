@@ -11,7 +11,7 @@ public class GeolocationUtil {
     private static double R = 6378.1f;
 
     /** Number of topics to view in each square. */
-    public static final int NUMBER_TOPIC_TO_VIEW = 5;
+    public static final int NUMBER_TOPIC_TO_VIEW = 10;
 
     /** Number of characters for geohashing .*/
     public static final int GEOHASH_PRECISION = 4;
