@@ -77,7 +77,7 @@ public class TestTopicDetections {
     @Test
     public void onTestGetTopics(){
         QuadManagerImpl quadManager = new QuadManagerImpl(new LDATopicDetector());
-//        quadManager.computeTopicStatsSmallestQuads();
+        quadManager.computeTopicStatsSmallestQuads();
         quadManager.displayTopics(new Location(47.185257, 8.206737),
                 new Location(43.171934, 18.449864), 170, "custom");
     }

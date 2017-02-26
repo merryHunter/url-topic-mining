@@ -425,7 +425,7 @@ public class QuadManagerImpl implements IQuadManager{
         int heightInQuads = (int) height / qSide;
         List<Quad> quadsInsideGivenArea = getQuadsInsideGivenArea(topQuad, widthInQuads, heightInQuads);
         for(int i = 0; i < quadsInsideGivenArea.size(); i++) {
-            calculateStatsForQuad(quadsInsideGivenArea.get(0), qSide);
+            calculateStatsForQuad(quadsInsideGivenArea.get(i), qSide);
         }
         //re-retrieve from database saved quads
 //        return getQuadsInsideGivenArea(topQuad, widthInQuads, heightInQuads);

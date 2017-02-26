@@ -21,6 +21,28 @@ public class TopicAggregation {
     private static final float MAX_RATING = 100.0f;
 
     public static Hashtable<String, Integer> computeStatsAggregation(List<Quad> quads) {
+        Hashtable<String, Float> newRatings = new Hashtable<>();
+        float[][] par = getParametersForFourQuads(quads);
+        for(int i = 0; i < quads.size(); i++){
+            Hashtable<String, Integer> stats = quads.get(i).getStats();
+            try {
+                if(stats != null && !stats.isEmpty()) {
+                    for (String t : stats.keySet()) {
+                        newRatings.put(t, 2 * stats.get(t) + c * par[i][2] + d * par[i][3]);
+                    }
+                }
+            }catch (Exception e){
+                logger.error(e.getMessage());
+            }
+        }
+        if(!newRatings.isEmpty()) {
+            return getRescaledValues(newRatings);
+        }
+        return null;
+    }
+
+
+    public static Hashtable<String, Integer> computeStatsAggregationModified(List<Quad> quads) {
         int qSide = quads.get(0).getqSide();
         Hashtable<String, Float> newRatings = new Hashtable<>();
         float[][] par = getParametersForFourQuads(quads);
